@@ -15,21 +15,25 @@ import {
 
 export const ADMIN_COOKIE = "tsf_admin";
 const TOKEN_TTL = "12h";
-const DEFAULT_PASSWORD = "Trishakti@2026";
+const MIN_PASSWORD_LENGTH = 8;
 
-function adminPassword(): string {
-  const fromEnv = process.env.ADMIN_PASSWORD?.trim();
-  return fromEnv && fromEnv.length > 0 ? fromEnv : DEFAULT_PASSWORD;
+function adminPassword(): string | null {
+  const fromEnv = process.env.ADMIN_PASSWORD?.trim() ?? "";
+  if (fromEnv.length < MIN_PASSWORD_LENGTH) return null;
+  return fromEnv;
 }
 
-export function usingPreviewAdminPassword(): boolean {
-  return !process.env.ADMIN_PASSWORD && !process.env.DATABASE_URL;
+export function adminAuthConfigured(): boolean {
+  return adminPassword() !== null;
 }
 
 function sessionSecret(): Uint8Array {
-  const raw =
-    process.env.ADMIN_SESSION_SECRET?.trim() ||
-    `tsf-admin-session:v1:${adminPassword()}`;
+  const explicit = process.env.ADMIN_SESSION_SECRET?.trim();
+  const password = adminPassword();
+  const raw = explicit || (password ? `tsf-admin-session:v1:${password}` : "");
+  if (!raw) {
+    return createHash("sha256").update("tsf-admin-unconfigured").digest();
+  }
   return createHash("sha256").update(raw).digest();
 }
 
@@ -47,7 +51,7 @@ export function assertSameOriginWrite(): void {
   const site = getRequestHeader("sec-fetch-site");
   if (site === "cross-site") {
     setResponseStatus(403);
-    throw new Error("\u0905\u092e\u093e\u0928\u094d\u092f \u0905\u0928\u0941\u0930\u094b\u0927");
+    throw new Error("अमान्य अनुरोध");
   }
   const origin = getRequestHeader("origin");
   if (!origin) return;
@@ -55,11 +59,11 @@ export function assertSameOriginWrite(): void {
   try {
     if (new URL(origin).host !== url.host) {
       setResponseStatus(403);
-      throw new Error("\u0905\u092e\u093e\u0928\u094d\u092f \u0905\u0928\u0941\u0930\u094b\u0927");
+      throw new Error("अमान्य अनुरोध");
     }
   } catch {
     setResponseStatus(403);
-    throw new Error("\u0905\u092e\u093e\u0928\u094d\u092f \u0905\u0928\u0941\u0930\u094b\u0927");
+    throw new Error("अमान्य अनुरोध");
   }
 }
 
@@ -90,7 +94,7 @@ export function setAdminCookie(token: string): void {
   const secure = getRequestProtocol({ xForwardedProto: true }) === "https";
   setCookie(ADMIN_COOKIE, token, {
     httpOnly: true,
-    sameSite: "lax",
+    sameSite: secure ? "none" : "lax",
     path: "/",
     maxAge: 60 * 60 * 12,
     secure,
@@ -101,28 +105,34 @@ export function clearAdminCookie(): void {
   deleteCookie(ADMIN_COOKIE, { path: "/" });
 }
 
-export async function loginWithPassword(password: string): Promise<string | null> {
-  if (!passwordsMatch(password, adminPassword())) return null;
+export async function loginWithPassword(
+  password: string,
+): Promise<"ok" | "unconfigured" | "invalid"> {
+  const expected = adminPassword();
+  if (!expected) {
+    setResponseStatus(503);
+    return "unconfigured";
+  }
+  if (!passwordsMatch(password, expected)) return "invalid";
   const token = await signAdminToken();
   setAdminCookie(token);
-  return token;
+  return "ok";
 }
 
 export function readAdminCookie(): string | undefined {
   return getCookie(ADMIN_COOKIE);
 }
 
-export async function requireAdmin(presentedToken?: string): Promise<void> {
+export async function requireAdmin(): Promise<void> {
   setResponseHeader("cache-control", "no-store");
   setResponseHeader("vary", "Cookie");
   const cookie = getCookie(ADMIN_COOKIE);
-  const ok = (await verifyAdminToken(cookie)) || (await verifyAdminToken(presentedToken));
+  const ok = await verifyAdminToken(cookie);
   if (!ok) {
     setResponseStatus(401);
-    throw new Error("\u092a\u094d\u0930\u0936\u093e\u0938\u0928 \u0932\u0949\u0917\u093f\u0928 \u0906\u0935\u0936\u094d\u092f\u0915 \u0939\u0948");
+    throw new Error("प्रशासन लॉगिन आवश्यक है");
   }
 }
-
 
 export function requestUrl(): URL {
   try {
