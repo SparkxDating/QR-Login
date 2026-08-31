@@ -51,10 +51,9 @@ const EMPTY: FormState = {
   website: "",
 };
 
-
 export function RegistrationForm() {
   const [values, setValues] = useState(EMPTY);
-  const [errors, setErrors] = useState<Partial<Record<FieldKey, string>>>( {} );
+  const [errors, setErrors] = useState<Partial<Record<FieldKey, string>>>({});
   const [formError, setFormError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState<{
@@ -100,21 +99,21 @@ export function RegistrationForm() {
       setSuccess({
         number: result.registrationNumber,
         details: {
-          "\u0928\u093e\u092e": parsed.data.name,
-          "\u092a\u093f\u0924\u093e/\u092a\u0924\u093f \u0915\u093e \u0928\u093e\u092e": parsed.data.fatherOrHusbandName,
-          "\u0917\u094d\u0930\u093e\u092e": parsed.data.village,
-          "\u092a\u094b\u0938\u094d\u091f": parsed.data.post,
-          "\u0928\u094d\u092f\u093e\u092f \u092a\u0902\u091a\u093e\u092f\u0924": parsed.data.nyayaPanchayat,
-          "\u092c\u094d\u0932\u0949\u0915": parsed.data.block,
-          "\u0924\u0939\u0938\u0940\u0932": parsed.data.tehsil,
-          "\u091c\u0928\u092a\u0926": parsed.data.district,
-          "\u092e\u094b\u092c\u093e\u0907\u0932": parsed.data.mobile,
+          नाम: parsed.data.name,
+          "पिता/पति का नाम": parsed.data.fatherOrHusbandName,
+          ग्राम: parsed.data.village,
+          पोस्ट: parsed.data.post,
+          "न्याय पंचायत": parsed.data.nyayaPanchayat,
+          ब्लॉक: parsed.data.block,
+          तहसील: parsed.data.tehsil,
+          जनपद: parsed.data.district,
+          मोबाइल: parsed.data.mobile,
         },
       });
       setValues(EMPTY);
       setErrors({});
     } catch {
-      setFormError("\u092a\u0902\u091c\u0940\u0915\u0930\u0923 \u0928\u0939\u0940\u0902 \u0939\u094b \u0938\u0915\u093e\u0964 \u0915\u0943\u092a\u092f\u093e \u092a\u0941\u0928\u0903 \u092a\u094d\u0930\u092f\u093e\u0938 \u0915\u0930\u0947\u0902\u0964");
+      setFormError("पंजीकरण नहीं हो सका। कृपया पुनः प्रयास करें।");
     } finally {
       lock.current = false;
       setSubmitting(false);
@@ -137,11 +136,11 @@ export function RegistrationForm() {
       noValidate
       className="rounded-xl bg-paper p-5 shadow-[var(--shadow-card)] sm:p-6"
     >
-      <h2 className="font-display text-2xl text-maroon">\u092a\u0902\u091c\u0940\u0915\u0930\u0923 \u0939\u0947\u0924\u0941 \u0935\u093f\u0935\u0930\u0923</h2>
-      <p className="mt-1 text-sm text-muted">\u0924\u093e\u0930\u093e\u0902\u0915\u0928 (*) \u0935\u093e\u0932\u0947 \u0938\u092d\u0940 \u0915\u0949\u0932\u092e \u0905\u0928\u093f\u0935\u093e\u0930\u094d\u092f \u0939\u0948\u0902\u0964</p>
+      <h2 className="font-display text-2xl text-maroon">पंजीकरण हेतु विवरण</h2>
+      <p className="mt-1 text-sm text-muted">तारांकन (*) वाले सभी कॉलम अनिवार्य हैं।</p>
 
       <div className="mt-5 grid gap-4">
-        <Field label="\u0928\u093e\u092e *" error={errors.name}>
+        <Field label="नाम *" error={errors.name}>
           <Input
             id="name"
             name="name"
@@ -151,7 +150,7 @@ export function RegistrationForm() {
             maxLength={120}
           />
         </Field>
-        <Field label="\u092a\u093f\u0924\u093e/\u092a\u0924\u093f \u0915\u093e \u0928\u093e\u092e *" error={errors.fatherOrHusbandName}>
+        <Field label="पिता/पति का नाम *" error={errors.fatherOrHusbandName}>
           <Input
             id="fatherOrHusbandName"
             name="fatherOrHusbandName"
@@ -161,7 +160,7 @@ export function RegistrationForm() {
           />
         </Field>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="\u0917\u094d\u0930\u093e\u092e *" error={errors.village}>
+          <Field label="ग्राम *" error={errors.village}>
             <Input
               id="village"
               name="village"
@@ -170,7 +169,7 @@ export function RegistrationForm() {
               maxLength={120}
             />
           </Field>
-          <Field label="\u092a\u094b\u0938\u094d\u091f *" error={errors.post}>
+          <Field label="पोस्ट *" error={errors.post}>
             <Input
               id="post"
               name="post"
@@ -180,7 +179,7 @@ export function RegistrationForm() {
             />
           </Field>
         </div>
-        <Field label="\u0928\u094d\u092f\u093e\u092f \u092a\u0902\u091a\u093e\u092f\u0924 *" error={errors.nyayaPanchayat}>
+        <Field label="न्याय पंचायत *" error={errors.nyayaPanchayat}>
           <Input
             id="nyayaPanchayat"
             name="nyayaPanchayat"
@@ -190,7 +189,7 @@ export function RegistrationForm() {
           />
         </Field>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="\u092c\u094d\u0932\u0949\u0915 *" error={errors.block}>
+          <Field label="ब्लॉक *" error={errors.block}>
             <NativeSelect
               id="block"
               name="block"
@@ -199,7 +198,7 @@ export function RegistrationForm() {
                 set("block", e.target.value as (typeof BLOCKS)[number] | "")
               }
             >
-              <option value="">\u092c\u094d\u0932\u0949\u0915 \u091a\u0941\u0928\u0947\u0902</option>
+              <option value="">ब्लॉक चुनें</option>
               {BLOCKS.map((block) => (
                 <option key={block} value={block}>
                   {block}
@@ -207,7 +206,7 @@ export function RegistrationForm() {
               ))}
             </NativeSelect>
           </Field>
-          <Field label="\u0924\u0939\u0938\u0940\u0932 *" error={errors.tehsil}>
+          <Field label="तहसील *" error={errors.tehsil}>
             <Input
               id="tehsil"
               name="tehsil"
@@ -217,7 +216,7 @@ export function RegistrationForm() {
             />
           </Field>
         </div>
-        <Field label="\u091c\u0928\u092a\u0926 *" error={errors.district}>
+        <Field label="जनपद *" error={errors.district}>
           <Input
             id="district"
             name="district"
@@ -226,7 +225,7 @@ export function RegistrationForm() {
             maxLength={120}
           />
         </Field>
-        <Field label="\u0938\u0902\u092a\u0930\u094d\u0915 \u0938\u0942\u0924\u094d\u0930 / \u092e\u094b\u092c\u093e\u0907\u0932 \u0928\u0902\u092c\u0930 *" error={errors.mobile}>
+        <Field label="संपर्क सूत्र / मोबाइल नंबर *" error={errors.mobile}>
           <Input
             id="mobile"
             name="mobile"
@@ -235,22 +234,22 @@ export function RegistrationForm() {
             maxLength={10}
             value={values.mobile}
             onChange={(e) => set("mobile", e.target.value.replace(/\D/g, "").slice(0, 10))}
-            placeholder="10 \u0905\u0902\u0915\u094b\u0902 \u0915\u093e \u092e\u094b\u092c\u093e\u0907\u0932 \u0928\u0902\u092c\u0930"
+            placeholder="10 अंकों का मोबाइल नंबर"
           />
         </Field>
-        <Field label="\u0928\u094b\u091f" error={errors.note}>
+        <Field label="नोट" error={errors.note}>
           <Textarea
             name="note"
             value={values.note}
             onChange={(e) => set("note", e.target.value)}
             maxLength={500}
-            placeholder="\u0915\u094b\u0908 \u0905\u0924\u093f\u0930\u093f\u0915\u094d\u0924 \u091c\u093e\u0928\u0915\u093e\u0930\u0940 (\u0935\u0948\u0915\u0932\u094d\u092a\u093f\u0915)"
+            placeholder="कोई अतिरिक्त जानकारी (वैकल्पिक)"
           />
         </Field>
 
         <div className="hidden" aria-hidden="true">
           <label>
-            \u0935\u0947\u092c\u0938\u093e\u0907\u091f
+            वेबसाइट
             <input
               tabIndex={-1}
               autoComplete="off"
@@ -268,7 +267,7 @@ export function RegistrationForm() {
             onChange={(e) => set("confirmed", e.target.checked)}
           />
           <span className="text-sm leading-snug text-navy">
-            \u092e\u0948\u0902\u0928\u0947 \u0909\u092a\u0930 \u0926\u0940 \u0917\u0908 \u091c\u093e\u0928\u0915\u093e\u0930\u0940 \u0938\u0939\u0940 \u0926\u0930\u094d\u091c \u0915\u0940 \u0939\u0948\u0964
+            मैंने उपर दी गई जानकारी सही दर्ज की है।
           </span>
         </label>
         <FieldError>{errors.confirmed}</FieldError>
@@ -284,12 +283,13 @@ export function RegistrationForm() {
         {submitting ? (
           <>
             <LoaderCircle className="size-5 animate-spin" aria-hidden="true" />
-            \u092a\u0902\u091c\u0940\u0915\u0930\u0923 \u0939\u094b \u0930\u0939\u093e \u0939\u0948\u2026
+            पंजीकरण हो रहा है...
           </>
         ) : (
-          "\u092a\u0902\u091c\u0940\u0915\u0930\u0923 \u0915\u0930\u0947\u0902"
+          "पंजीकरण करें"
         )}
       </Button>
+      <p className="mt-4 text-center text-xs leading-relaxed text-muted">{CAMP.privacyNote}</p>
     </form>
   );
 }
