@@ -7,6 +7,8 @@ Camp date: **06 सितंबर 2026**
 Public form: `/` and `/register`  
 Admin dashboard: `/admin`
 
+Live: [https://qr-login-six.vercel.app/register](https://qr-login-six.vercel.app/register)
+
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/SparkxDating/QRLogin&env=ADMIN_PASSWORD,DATABASE_URL&envDescription=Admin%20password%20and%20Neon%20Postgres%20URL&project-name=qr-login&repository-name=QRLogin)
 
 ## Features
@@ -63,13 +65,12 @@ There is **no default admin password**. If `ADMIN_PASSWORD` is unset, admin logi
 
 ## Photos
 
-Replace framed placeholders in `public/photos/` with approved portraits (same filenames):
+Approved portraits in `public/photos/`:
 
 - `narendra-modi.jpg`
 - `yogi-adityanath.jpg`
 - `ambarish-singh-bhola.jpg`
-
-PNG also works if you update the paths in `src/lib/camp.ts`.
+- `jagatguru-vijendra-saraswati.jpg`
 
 ## License
 

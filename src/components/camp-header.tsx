@@ -1,51 +1,69 @@
+import type { ReactNode } from "react";
 import { CAMP, PHOTOS } from "@/lib/camp";
 import { PhotoSlot } from "@/components/photo-slot";
+import { CalendarDays } from "lucide-react";
 
 export function CampHeader() {
   return (
-    <header className="relative overflow-hidden bg-navy text-paper">
-      <div
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            "radial-gradient(900px 240px at 50% -30%, rgb(196 163 90 / 0.22), transparent 55%), linear-gradient(180deg, var(--color-maroon) 0%, var(--color-navy) 100%)",
-        }}
-      />
-      <div className="relative mx-auto max-w-3xl px-4 pb-4 pt-3 sm:px-6 sm:pb-8 sm:pt-5">
-        <div className="grid grid-cols-[auto_1fr] items-start gap-3">
-          <PhotoSlot {...PHOTOS.yogi} size="sm" />
-          <div className="min-w-0 pt-0.5 text-right">
-            <p className="text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-gold">
-              {CAMP.hospitalEn}
+    <header className="relative overflow-hidden bg-cream text-ink">
+      <div className="relative mx-auto max-w-5xl px-4 pb-5 pt-5 sm:px-6 sm:pb-8 sm:pt-7">
+        <Flourish>
+          <p className="font-display text-base font-semibold tracking-wide text-maroon sm:text-xl">
+            {CAMP.inspiration}
+          </p>
+        </Flourish>
+
+        <div className="mt-5 grid grid-cols-2 items-start gap-3 sm:grid-cols-3 sm:gap-5">
+          <PhotoSlot
+            {...PHOTOS.jagatguru}
+            size="lg"
+            tone="light"
+            objectPosition="center top"
+            className="justify-self-center"
+          />
+          <PhotoSlot
+            {...PHOTOS.modi}
+            size="lg"
+            tone="light"
+            objectPosition="center 18%"
+            className="justify-self-center sm:col-start-3"
+          />
+          <div className="col-span-2 text-center sm:col-span-1 sm:col-start-2 sm:row-start-1 sm:pt-1">
+            <h1 className="font-display text-xl leading-snug text-maroon sm:text-3xl">
+              {CAMP.foundation}
+            </h1>
+            <p className="mt-1 text-sm text-gold-deep">एवं</p>
+            <p className="mt-1 font-display text-base leading-snug text-navy sm:text-xl">
+              {CAMP.hospital}
             </p>
-            <p className="text-[0.62rem] text-paper/70">{CAMP.hospitalUnit}</p>
-            <p className="mt-2 inline-block rounded-full bg-saffron px-3 py-1 text-xs font-semibold text-paper">
+            <p className="banner-saffron mt-3 inline-block rounded-full px-4 py-1 text-xs font-semibold tracking-wide sm:text-sm">
               {CAMP.campaign}
             </p>
-            <p className="mt-1.5 font-display text-base font-semibold text-gold sm:text-lg">
+            <h2 className="mt-3 font-display text-lg leading-snug text-maroon sm:mt-4 sm:text-3xl">
+              {CAMP.title}
+            </h2>
+            <p className="mx-auto mt-3 max-w-lg text-sm leading-relaxed text-navy/80 sm:text-base">
+              {CAMP.subtitle}
+            </p>
+            <p className="banner-maroon mx-auto mt-4 inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold sm:text-base">
+              <CalendarDays className="size-4 shrink-0 text-gold" aria-hidden="true" />
               {CAMP.dateLine}
             </p>
           </div>
         </div>
-
-        <div className="mt-2 flex justify-center">
-          <PhotoSlot {...PHOTOS.modi} size="lg" />
-        </div>
-
-        <div className="mt-3 text-center">
-          <h1 className="font-display text-xl leading-snug text-paper sm:text-3xl">
-            {CAMP.foundation}
-          </h1>
-          <p className="mt-0.5 text-sm text-gold">एवं</p>
-          <p className="mt-0.5 font-display text-base leading-snug text-paper sm:text-xl">
-            {CAMP.hospital}
-          </p>
-        </div>
-
-        <div className="mt-2 flex justify-end">
-          <PhotoSlot {...PHOTOS.bhola} size="sm" />
-        </div>
       </div>
     </header>
+  );
+}
+
+function Flourish({ children }: { children: ReactNode }) {
+  return (
+    <div className="ornament">
+      <span className="ornament-rule" aria-hidden="true" />
+      <span className="ornament-diamond" aria-hidden="true" />
+      {children}
+      <span className="ornament-diamond" aria-hidden="true" />
+      <span className="ornament-rule rotate-180" aria-hidden="true" />
+    </div>
   );
 }

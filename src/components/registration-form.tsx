@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { FieldError, Label } from "@/components/ui/label";
 import { Input, NativeSelect, Textarea } from "@/components/ui/input";
 import { SuccessView } from "@/components/success-view";
-import { LoaderCircle } from "lucide-react";
+import { LoaderCircle, PenLine } from "lucide-react";
 
 type FieldKey =
   | "name"
@@ -134,118 +134,129 @@ export function RegistrationForm() {
     <form
       onSubmit={onSubmit}
       noValidate
-      className="rounded-xl bg-paper p-5 shadow-[var(--shadow-card)] sm:p-6"
+      className="overflow-hidden rounded-xl bg-paper shadow-[var(--shadow-card)]"
     >
-      <h2 className="font-display text-2xl text-maroon">पंजीकरण हेतु विवरण</h2>
-      <p className="mt-1 text-sm text-muted">तारांकन (*) वाले सभी कॉलम अनिवार्य हैं।</p>
+      <h2 className="banner-maroon px-5 py-3 font-display text-xl sm:text-2xl">
+        {CAMP.formHeading}
+      </h2>
+      <div className="p-5 sm:p-6">
+        <p className="text-sm text-muted">तारांकन (*) वाले सभी कॉलम अनिवार्य हैं।</p>
 
-      <div className="mt-5 grid gap-4">
-        <Field label="नाम *" error={errors.name}>
-          <Input
-            id="name"
-            name="name"
-            autoComplete="name"
-            value={values.name}
-            onChange={(e) => set("name", e.target.value)}
-            maxLength={120}
-          />
-        </Field>
-        <Field label="पिता/पति का नाम *" error={errors.fatherOrHusbandName}>
-          <Input
-            id="fatherOrHusbandName"
-            name="fatherOrHusbandName"
-            value={values.fatherOrHusbandName}
-            onChange={(e) => set("fatherOrHusbandName", e.target.value)}
-            maxLength={120}
-          />
-        </Field>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="ग्राम *" error={errors.village}>
-            <Input
-              id="village"
-              name="village"
-              value={values.village}
-              onChange={(e) => set("village", e.target.value)}
-              maxLength={120}
-            />
-          </Field>
-          <Field label="पोस्ट *" error={errors.post}>
-            <Input
-              id="post"
-              name="post"
-              value={values.post}
-              onChange={(e) => set("post", e.target.value)}
-              maxLength={120}
-            />
-          </Field>
+        <div className="mt-5 grid gap-4 sm:grid-cols-2">
+          <div className="grid content-start gap-4">
+            <Field label="1. नाम *" error={errors.name}>
+              <Input
+                id="name"
+                name="name"
+                autoComplete="name"
+                value={values.name}
+                onChange={(e) => set("name", e.target.value)}
+                maxLength={120}
+                placeholder="अपना पूरा नाम दर्ज करें"
+              />
+            </Field>
+            <Field label="2. पिता/पति का नाम *" error={errors.fatherOrHusbandName}>
+              <Input
+                id="fatherOrHusbandName"
+                name="fatherOrHusbandName"
+                value={values.fatherOrHusbandName}
+                onChange={(e) => set("fatherOrHusbandName", e.target.value)}
+                maxLength={120}
+                placeholder="पिता/पति का नाम दर्ज करें"
+              />
+            </Field>
+            <Field label="3. ग्राम *" error={errors.village}>
+              <Input
+                id="village"
+                name="village"
+                value={values.village}
+                onChange={(e) => set("village", e.target.value)}
+                maxLength={120}
+                placeholder="ग्राम का नाम दर्ज करें"
+              />
+            </Field>
+            <Field label="4. पोस्ट *" error={errors.post}>
+              <Input
+                id="post"
+                name="post"
+                value={values.post}
+                onChange={(e) => set("post", e.target.value)}
+                maxLength={120}
+                placeholder="पोस्ट का नाम दर्ज करें"
+              />
+            </Field>
+            <Field label="5. न्याय पंचायत *" error={errors.nyayaPanchayat}>
+              <Input
+                id="nyayaPanchayat"
+                name="nyayaPanchayat"
+                value={values.nyayaPanchayat}
+                onChange={(e) => set("nyayaPanchayat", e.target.value)}
+                maxLength={120}
+                placeholder="न्याय पंचायत का नाम दर्ज करें"
+              />
+            </Field>
+          </div>
+          <div className="grid content-start gap-4">
+            <Field label="6. ब्लॉक *" error={errors.block}>
+              <NativeSelect
+                id="block"
+                name="block"
+                value={values.block}
+                onChange={(e) =>
+                  set("block", e.target.value as (typeof BLOCKS)[number] | "")
+                }
+              >
+                <option value="">चयन करें</option>
+                {BLOCKS.map((block) => (
+                  <option key={block} value={block}>
+                    {block}
+                  </option>
+                ))}
+              </NativeSelect>
+            </Field>
+            <Field label="7. तहसील *" error={errors.tehsil}>
+              <Input
+                id="tehsil"
+                name="tehsil"
+                value={values.tehsil}
+                onChange={(e) => set("tehsil", e.target.value)}
+                maxLength={120}
+                placeholder="तहसील का नाम दर्ज करें"
+              />
+            </Field>
+            <Field label="8. जनपद *" error={errors.district}>
+              <Input
+                id="district"
+                name="district"
+                value={values.district}
+                onChange={(e) => set("district", e.target.value)}
+                maxLength={120}
+              />
+            </Field>
+            <Field label="9. संपर्क सूत्र / मोबाइल नंबर *" error={errors.mobile}>
+              <Input
+                id="mobile"
+                name="mobile"
+                inputMode="numeric"
+                autoComplete="tel-national"
+                maxLength={10}
+                value={values.mobile}
+                onChange={(e) => set("mobile", e.target.value.replace(/\D/g, "").slice(0, 10))}
+                placeholder="10 अंक का मोबाइल नंबर दर्ज करें"
+              />
+            </Field>
+            <Field label="10. नोट (वैकल्पिक)" error={errors.note}>
+              <Textarea
+                name="note"
+                value={values.note}
+                onChange={(e) => set("note", e.target.value)}
+                maxLength={500}
+                placeholder="यदि कोई विशेष जानकारी हो तो लिखें"
+                className="min-h-12 sm:min-h-28"
+              />
+            </Field>
+          </div>
         </div>
-        <Field label="न्याय पंचायत *" error={errors.nyayaPanchayat}>
-          <Input
-            id="nyayaPanchayat"
-            name="nyayaPanchayat"
-            value={values.nyayaPanchayat}
-            onChange={(e) => set("nyayaPanchayat", e.target.value)}
-            maxLength={120}
-          />
-        </Field>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="ब्लॉक *" error={errors.block}>
-            <NativeSelect
-              id="block"
-              name="block"
-              value={values.block}
-              onChange={(e) =>
-                set("block", e.target.value as (typeof BLOCKS)[number] | "")
-              }
-            >
-              <option value="">ब्लॉक चुनें</option>
-              {BLOCKS.map((block) => (
-                <option key={block} value={block}>
-                  {block}
-                </option>
-              ))}
-            </NativeSelect>
-          </Field>
-          <Field label="तहसील *" error={errors.tehsil}>
-            <Input
-              id="tehsil"
-              name="tehsil"
-              value={values.tehsil}
-              onChange={(e) => set("tehsil", e.target.value)}
-              maxLength={120}
-            />
-          </Field>
-        </div>
-        <Field label="जनपद *" error={errors.district}>
-          <Input
-            id="district"
-            name="district"
-            value={values.district}
-            onChange={(e) => set("district", e.target.value)}
-            maxLength={120}
-          />
-        </Field>
-        <Field label="संपर्क सूत्र / मोबाइल नंबर *" error={errors.mobile}>
-          <Input
-            id="mobile"
-            name="mobile"
-            inputMode="numeric"
-            autoComplete="tel-national"
-            maxLength={10}
-            value={values.mobile}
-            onChange={(e) => set("mobile", e.target.value.replace(/\D/g, "").slice(0, 10))}
-            placeholder="10 अंकों का मोबाइल नंबर"
-          />
-        </Field>
-        <Field label="नोट" error={errors.note}>
-          <Textarea
-            name="note"
-            value={values.note}
-            onChange={(e) => set("note", e.target.value)}
-            maxLength={500}
-            placeholder="कोई अतिरिक्त जानकारी (वैकल्पिक)"
-          />
-        </Field>
 
         <div className="hidden" aria-hidden="true">
           <label>
@@ -259,7 +270,7 @@ export function RegistrationForm() {
           </label>
         </div>
 
-        <label className="flex min-h-12 cursor-pointer items-start gap-3 rounded-md bg-cream px-3 py-3">
+        <label className="mt-5 flex min-h-12 cursor-pointer items-start gap-3 rounded-md bg-cream px-3 py-3">
           <input
             type="checkbox"
             className="mt-1 size-5 shrink-0 accent-saffron"
@@ -267,29 +278,32 @@ export function RegistrationForm() {
             onChange={(e) => set("confirmed", e.target.checked)}
           />
           <span className="text-sm leading-snug text-navy">
-            मैंने उपर दी गई जानकारी सही दर्ज की है।
+            मैंने ऊपर दी गई जानकारी सही दर्ज की है।
           </span>
         </label>
         <FieldError>{errors.confirmed}</FieldError>
+
+        {formError ? (
+          <p className="mt-4 rounded-md bg-danger/10 px-3 py-2 text-sm text-danger" role="alert">
+            {formError}
+          </p>
+        ) : null}
+
+        <Button type="submit" size="lg" className="mt-5 w-full" disabled={submitting}>
+          {submitting ? (
+            <>
+              <LoaderCircle className="size-5 animate-spin" aria-hidden="true" />
+              पंजीकरण हो रहा है...
+            </>
+          ) : (
+            <>
+              <PenLine className="size-5" aria-hidden="true" />
+              पंजीकरण करें
+            </>
+          )}
+        </Button>
+        <p className="mt-4 text-center text-xs leading-relaxed text-muted">{CAMP.privacyNote}</p>
       </div>
-
-      {formError ? (
-        <p className="mt-4 rounded-md bg-danger/10 px-3 py-2 text-sm text-danger" role="alert">
-          {formError}
-        </p>
-      ) : null}
-
-      <Button type="submit" size="lg" className="mt-5 w-full" disabled={submitting}>
-        {submitting ? (
-          <>
-            <LoaderCircle className="size-5 animate-spin" aria-hidden="true" />
-            पंजीकरण हो रहा है...
-          </>
-        ) : (
-          "पंजीकरण करें"
-        )}
-      </Button>
-      <p className="mt-4 text-center text-xs leading-relaxed text-muted">{CAMP.privacyNote}</p>
     </form>
   );
 }

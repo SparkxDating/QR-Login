@@ -4,8 +4,11 @@ export const CAMP = {
   hospitalEn: "RJ Shankara Eye Hospital",
   hospitalUnit: "Unit of Sri Kanchi Kamakoti Medical Trust",
   campaign: "मासिक अभियान",
+  inspiration: "प्रेरणा स्रोत",
   title: "वृहद निःशुल्क मोतियाबिंद जाँच एवं ऑपरेशन शिविर",
   formTitle: "निःशुल्क मोतियाबिंद शिविर पंजीकरण",
+  formHeading: "पंजीकरण हेतु विवरण",
+  servicesHeading: "शिविर की विशेषताएँ",
   subtitle:
     "(चहनियाँ-सकलडीहा ब्लॉक, जनपद-चंदौली के प्रत्येक न्याय पंचायत में)",
   dateLabel: "06 सितंबर 2026",
@@ -15,9 +18,11 @@ export const CAMP = {
   address:
     "रिंग रोड - फेस 1, माधोपुर, सीएचसीजी पम्प के पास, वाराणसी - 221003",
   phones: ["9453793949", "9616656572", "7678821001"] as const,
-  organizer: "अम्बरीश सिंह ‘भोला’",
-  organizerRole:
-    "सदस्य, वाराणसी विकास प्राधिकरण बोर्ड, वाराणसी (उत्तर प्रदेश सरकार)",
+  organizer: "अम्बरीश सिंह “भोला”",
+  organizerRole: "कार्यक्रम संयोजक",
+  organizerBoard: "मानद सदस्य, वाराणसी विकास प्राधिकरण बोर्ड",
+  organizerGov: "उ०प्र० सरकार",
+  yogiHonorific: "पूज्य योगी आदित्यनाथ जी महाराज",
   districtDefault: "चंदौली",
   freeNote: "रजिस्ट्रेशन एवं जाँच पूर्णतः निःशुल्क",
   operationNote: "जाँच एवं ऑपरेशन पूरी तरह निःशुल्क किया जाएगा।",
@@ -50,26 +55,30 @@ export function statusLabel(value: string): string {
 export const PHOTOS = {
   yogi: {
     src: "/photos/yogi-adityanath.jpg",
-    name: "योगी आदित्यनाथ",
-    title: "माननीय मुख्यमंत्री, उ.प्र.",
+    name: "पूज्य योगी आदित्यनाथ जी महाराज",
+    title: "प्रेरणा स्रोत",
   },
   modi: {
     src: "/photos/narendra-modi.jpg",
     name: "श्री नरेन्द्र मोदी",
     title: "माननीय प्रधानमंत्री",
   },
+  jagatguru: {
+    src: "/photos/jagatguru-vijendra-saraswati.jpg",
+    name: "जगतगुरु विजेंद्र सरस्वती जी",
+    title: "शंकराचार्य, कांची कामकोटि पीठम",
+  },
   bhola: {
     src: "/photos/ambarish-singh-bhola.jpg",
-    name: "अम्बरीश सिंह ‘भोला’",
+    name: "अम्बरीश सिंह “भोला”",
     title: "कार्यक्रम संयोजक",
   },
 } as const;
 
 export const SERVICES = [
-  { title: "निःशुल्क मोतियाबिंद जाँच" },
-  { title: "निःशुल्क ऑपरेशन" },
-  { title: "निःशुल्क दवा" },
-  { title: "निःशुल्क चश्मा" },
+  { title: "निःशुल्क मोतियाबिंद जाँच", icon: "eye" },
+  { title: "निःशुल्क ऑपरेशन", icon: "bed" },
+  { title: "निःशुल्क दवा", icon: "pill" },
 ] as const;
 
 export const DOCUMENTS = [
