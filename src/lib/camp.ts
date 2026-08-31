@@ -1,36 +1,36 @@
 export const CAMP = {
-  foundation: "त्रिशक्ति सेवा फाउण्डेशन",
-  hospital: "आर जे शंकरा आई हॉस्पिटल, वाराणसी",
+  foundation: "\u0924\u094d\u0930\u093f\u0936\u0915\u094d\u0924\u093f \u0938\u0947\u0935\u093e \u092b\u093e\u0909\u0902\u0921\u0947\u0936\u0928",
+  hospital: "\u0906\u0930 \u091c\u0947 \u0936\u0902\u0915\u0930\u093e \u0906\u0908 \u0939\u0949\u0938\u094d\u092a\u093f\u091f\u0932, \u0935\u093e\u0930\u093e\u0923\u0938\u0940",
   hospitalEn: "RJ Shankara Eye Hospital",
   hospitalUnit: "Unit of Sri Kanchi Kamakoti Medical Trust",
-  campaign: "मासिक अभियान",
-  title: "वृहद निःशुल्क मोतियाबिंद जाࠓच एवं ऑपरेशन शिविर",
-  formTitle: "निःशुल्क मोतियाबिंद शिविर पंजीकरण",
+  campaign: "\u092e\u093e\u0938\u093f\u0915 \u0905\u092d\u093f\u092f\u093e\u0928",
+  title: "\u0935\u0943\u0939\u0926 \u0928\u093f\u0903\u0936\u0941\u0932\u094d\u0915 \u092e\u094b\u0924\u093f\u092f\u093e\u092c\u093f\u0902\u0926 \u091c\u093e\u0901\u091a \u090f\u0935\u0902 \u0911\u092a\u0930\u0947\u0936\u0928 \u0936\u093f\u0935\u093f\u0930",
+  formTitle: "\u0928\u093f\u0903\u0936\u0941\u0932\u094d\u0915 \u092e\u094b\u0924\u093f\u092f\u093e\u092c\u093f\u0902\u0926 \u0936\u093f\u0935\u093f\u0930 \u092a\u0902\u091c\u0940\u0915\u0930\u0923",
   subtitle:
-    "(चहनियाँ-सकलडीहा ब्लॉक, जनपद-चंदौली के प्रत्येक न्याय पंचायत में)",
-  dateLabel: "11 जनवरी 2026",
-  dayLabel: "रविवार",
-  timeLabel: "सुबह 10:00 बजे से सायं 4:00 बजे तक",
+    "(\u091a\u0939\u0928\u093f\u092f\u093e\u0901-\u0938\u0915\u0932\u0921\u0940\u0939\u093e \u092c\u094d\u0932\u0949\u0915, \u091c\u0928\u092a\u0926-\u091a\u0902\u0926\u094c\u0932\u0940 \u0915\u0947 \u092a\u094d\u0930\u0924\u094d\u092f\u0947\u0915 \u0928\u094d\u092f\u093e\u092f \u092a\u0902\u091a\u093e\u092f\u0924 \u092e\u0947\u0902)",
+  dateLabel: "11 \u091c\u0928\u0935\u0930\u0940 2026",
+  dayLabel: "\u0930\u0935\u093f\u0935\u093e\u0930",
+  timeLabel: "\u0938\u0941\u092c\u0939 10:00 \u092c\u091c\u0947 \u0938\u0947 \u0938\u093e\u092f\u0902 4:00 \u092c\u091c\u0947 \u0924\u0915",
   address:
-    "रिंग रोड - फेस 1, माधोपुर, सीएचसीजी पम्प के पास, वाराणसी - 221003",
+    "\u0930\u093f\u0902\u0917 \u0930\u094b\u0921 - \u092b\u0947\u0938 1, \u092e\u093e\u0927\u094b\u092a\u0941\u0930, \u0938\u0940\u090f\u091a\u0938\u0940\u091c\u0940 \u092a\u092e\u094d\u092a \u0915\u0947 \u092a\u093e\u0938, \u0935\u093e\u0930\u093e\u0923\u0938\u0940 - 221003",
   phones: ["9453793949", "9616656572", "7678821001"] as const,
-  organizer: "अम्बरीश सिंह ‘भोला’",
+  organizer: "\u0905\u092e\u094d\u092c\u0930\u0940\u0936 \u0938\u093f\u0902\u0939 \u2018\u092d\u094b\u0932\u093e\u2019",
   organizerRole:
-    "सदस्य, वाराणसी विकास प्राधिकरण बोर्ड, वाराणसी (उत्तर प्रदेश सरकार)",
-  districtDefault: "चंदौली",
-  freeNote: "रजिस्ट्रेशन एवं जाࠓच पूर्णतः निःशुल्क",
-  operationNote: "जाࠓच एवं ऑपरेशन पूरी तरह निःशुल्क किया जाएगा।",
+    "\u0938\u0926\u0938\u094d\u092f, \u0935\u093e\u0930\u093e\u0923\u0938\u0940 \u0935\u093f\u0915\u093e\u0938 \u092a\u094d\u0930\u093e\u0927\u093f\u0915\u0930\u0923 \u092c\u094b\u0930\u094d\u0921, \u0935\u093e\u0930\u093e\u0923\u0938\u0940 (\u0909\u0924\u094d\u0924\u0930 \u092a\u094d\u0930\u0926\u0947\u0936 \u0938\u0930\u0915\u093e\u0930)",
+  districtDefault: "\u091a\u0902\u0926\u094c\u0932\u0940",
+  freeNote: "\u0930\u091c\u093f\u0938\u094d\u091f\u094d\u0930\u0947\u0936\u0928 \u090f\u0935\u0902 \u091c\u093e\u0901\u091a \u092a\u0942\u0930\u094d\u0923\u0924\u0903 \u0928\u093f\u0903\u0936\u0941\u0932\u094d\u0915",
+  operationNote: "\u091c\u093e\u0901\u091a \u090f\u0935\u0902 \u0911\u092a\u0930\u0947\u0936\u0928 \u092a\u0942\u0930\u0940 \u0924\u0930\u0939 \u0928\u093f\u0903\u0936\u0941\u0932\u094d\u0915 \u0915\u093f\u092f\u093e \u091c\u093e\u090f\u0917\u093e\u0964",
 } as const;
 
-export const BLOCKS = ["चहनियाँ", "सकलडीहा"] as const;
+export const BLOCKS = ["\u091a\u0939\u0928\u093f\u092f\u093e\u0901", "\u0938\u0915\u0932\u0921\u0940\u0939\u093e"] as const;
 export type BlockName = (typeof BLOCKS)[number];
 
 export const STATUSES = [
-  { value: "registered", label: "पंजीकृत" },
-  { value: "screened", label: "जाࠓच पूर्ण" },
-  { value: "operation_recommended", label: "ऑपरेशन अनुशंसित" },
-  { value: "operation_completed", label: "ऑपरेशन पूर्ण" },
-  { value: "follow_up", label: "फॉलो-अप" },
+  { value: "registered", label: "\u092a\u0902\u091c\u0940\u0915\u0943\u0924" },
+  { value: "screened", label: "\u091c\u093e\u0901\u091a \u092a\u0942\u0930\u094d\u0923" },
+  { value: "operation_recommended", label: "\u0911\u092a\u0930\u0947\u0936\u0928 \u0905\u0928\u0941\u0936\u0902\u0938\u093f\u0924" },
+  { value: "operation_completed", label: "\u0911\u092a\u0930\u0947\u0936\u0928 \u092a\u0942\u0930\u094d\u0923" },
+  { value: "follow_up", label: "\u092b\u0949\u0932\u094b-\u0905\u092a" },
 ] as const;
 
 export type RegistrationStatus = (typeof STATUSES)[number]["value"];
@@ -47,30 +47,30 @@ export function statusLabel(value: string): string {
 export const PHOTO_SLOTS = [
   {
     src: "/photos/narendra-modi.svg",
-    name: "श्री नरेन्द्र मोदी",
-    title: "माननीय प्रधानमंत्री",
+    name: "\u0936\u094d\u0930\u0940 \u0928\u0930\u0947\u0928\u094d\u0926\u094d\u0930 \u092e\u094b\u0926\u0940",
+    title: "\u092e\u093e\u0928\u0928\u0940\u092f \u092a\u094d\u0930\u0927\u093e\u0928\u092e\u0902\u0924\u094d\u0930\u0940",
   },
   {
     src: "/photos/yogi-adityanath.svg",
-    name: "योगी आदित्यनाथ",
-    title: "माननीय मुख्यमंत्री, उ.प्र.",
+    name: "\u092f\u094b\u0917\u0940 \u0906\u0926\u093f\u0924\u094d\u092f\u0928\u093e\u0925",
+    title: "\u092e\u093e\u0928\u0928\u0940\u092f \u092e\u0941\u0916\u094d\u092f\u092e\u0902\u0924\u094d\u0930\u0940, \u0909.\u092a\u094d\u0930.",
   },
   {
     src: "/photos/ambarish-singh-bhola.svg",
-    name: "अम्बरीश सिंह ‘भोला’",
-    title: "कार्यक्रम संयोजक",
+    name: "\u0905\u092e\u094d\u092c\u0930\u0940\u0936 \u0938\u093f\u0902\u0939 \u2018\u092d\u094b\u0932\u093e\u2019",
+    title: "\u0915\u093e\u0930\u094d\u092f\u0915\u094d\u0930\u092e \u0938\u0902\u092f\u094b\u091c\u0915",
   },
 ] as const;
 
 export const SERVICES = [
-  { title: "निःशुल्क मोतियाबिंद जाࠓच", detail: "विशेषज्ञ चिकित्सकों द्वारा" },
-  { title: "निःशुल्क ऑपरेशन", detail: "सुरक्षित शल्य चिकित्सा" },
-  { title: "निःशुल्क दवा एवं चश्मा", detail: "आवश्यक दवा और चश्मा" },
+  { title: "\u0928\u093f\u0903\u0936\u0941\u0932\u094d\u0915 \u092e\u094b\u0924\u093f\u092f\u093e\u092c\u093f\u0902\u0926 \u091c\u093e\u0901\u091a", detail: "\u0935\u093f\u0936\u0947\u0937\u091c\u094d\u091e \u091a\u093f\u0915\u093f\u0924\u094d\u0938\u0915\u094b\u0902 \u0926\u094d\u0935\u093e\u0930\u093e" },
+  { title: "\u0928\u093f\u0903\u0936\u0941\u0932\u094d\u0915 \u0911\u092a\u0930\u0947\u0936\u0928", detail: "\u0938\u0941\u0930\u0915\u094d\u0937\u093f\u0924 \u0936\u0932\u094d\u092f \u091a\u093f\u0915\u093f\u0924\u094d\u0938\u093e" },
+  { title: "\u0928\u093f\u0903\u0936\u0941\u0932\u094d\u0915 \u0926\u0935\u093e \u090f\u0935\u0902 \u091a\u0936\u094d\u092e\u093e", detail: "\u0906\u0935\u0936\u094d\u092f\u0915 \u0926\u0935\u093e \u0914\u0930 \u091a\u0936\u094d\u092e\u093e" },
 ] as const;
 
 export const DOCUMENTS = [
-  "आधार कार्ड की फोटो कॉपी",
-  "मोबाइल नंबर",
-  "मास्क",
-  "दवाईयाँ (अगर पहले से कोई दवाई लेते हों)",
+  "\u0906\u0927\u093e\u0930 \u0915\u093e\u0930\u094d\u0921 \u0915\u0940 \u092b\u094b\u091f\u094b \u0915\u0949\u092a\u0940",
+  "\u092e\u094b\u092c\u093e\u0907\u0932 \u0928\u0902\u092c\u0930",
+  "\u092e\u093e\u0938\u094d\u0915",
+  "\u0926\u0935\u093e\u0908\u092f\u093e\u0901 (\u0905\u0917\u0930 \u092a\u0939\u0932\u0947 \u0938\u0947 \u0915\u094b\u0908 \u0926\u0935\u093e\u0908 \u0932\u0947\u0924\u0947 \u0939\u094b\u0902)",
 ] as const;
