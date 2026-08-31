@@ -31,14 +31,17 @@ export function PhotoSlot({
 }) {
   const [failed, setFailed] = useState(false);
   const dark = tone === "dark";
+  const customCrop =
+    typeof className === "string" &&
+    (className.includes("jagatguru-photo") || className.includes("narendra-modi-photo"));
 
   return (
     <figure className={cn("flex min-w-0 flex-col items-center text-center", className)}>
       <div
         className={cn(
-          "relative overflow-hidden bg-cream shadow-[0_0_0_3px_var(--color-cream),0_0_0_7px_var(--color-gold)]",
+          "photo-frame relative overflow-hidden bg-cream shadow-[0_0_0_3px_var(--color-cream),0_0_0_7px_var(--color-gold)]",
           shape === "circle" ? "rounded-full" : "rounded-xl",
-          shape === "rounded" ? "h-44 w-36 sm:h-56 sm:w-44" : SIZES[size],
+          customCrop ? null : shape === "rounded" ? "h-44 w-36 sm:h-56 sm:w-44" : SIZES[size],
         )}
       >
         {failed ? (
@@ -54,8 +57,8 @@ export function PhotoSlot({
           <img
             src={src}
             alt={name}
-            className="size-full object-cover"
-            style={{ objectPosition }}
+            className={customCrop ? undefined : "size-full object-cover"}
+            style={customCrop ? undefined : { objectPosition }}
             onError={() => setFailed(true)}
           />
         )}

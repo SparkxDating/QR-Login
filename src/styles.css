@@ -118,6 +118,45 @@
   }
 }
 
+/* Header inspiration portraits — unlayered so sizing wins over Tailwind on mobile Safari */
+.jagatguru-photo .photo-frame,
+.narendra-modi-photo .photo-frame {
+  width: 140px;
+  height: 140px;
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: var(--color-cream);
+}
+
+@media (min-width: 640px) {
+  .jagatguru-photo .photo-frame,
+  .narendra-modi-photo .photo-frame {
+    width: 200px;
+    height: 200px;
+  }
+}
+
+.jagatguru-photo img,
+.narendra-modi-photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+}
+
+.jagatguru-photo img {
+  object-fit: contain;
+  object-position: center center;
+}
+
+.narendra-modi-photo img {
+  object-fit: cover;
+  object-position: center center;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

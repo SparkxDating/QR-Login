@@ -16,17 +16,13 @@ export function CampHeader() {
         <div className="mt-5 grid grid-cols-2 items-start gap-3 sm:grid-cols-3 sm:gap-5">
           <PhotoSlot
             {...PHOTOS.jagatguru}
-            size="lg"
             tone="light"
-            objectPosition="center top"
-            className="justify-self-center"
+            className="jagatguru-photo justify-self-center"
           />
           <PhotoSlot
             {...PHOTOS.modi}
-            size="lg"
             tone="light"
-            objectPosition="center 18%"
-            className="justify-self-center sm:col-start-3"
+            className="narendra-modi-photo justify-self-center sm:col-start-3"
           />
           <div className="col-span-2 text-center sm:col-span-1 sm:col-start-2 sm:row-start-1 sm:pt-1">
             <h1 className="font-display text-xl leading-snug text-maroon sm:text-3xl">
