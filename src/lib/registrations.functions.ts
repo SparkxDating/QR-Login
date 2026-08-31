@@ -2,7 +2,6 @@ import { createServerFn } from "@tanstack/react-start";
 import {
   adminListSchema,
   adminStatusSchema,
-  adminTokenSchema,
   registrationInputSchema,
   type RegistrationRow,
 } from "./registrations";
@@ -64,7 +63,7 @@ export const submitRegistration = createServerFn({ method: "POST" })
     assertSameOriginWrite();
     if (!allowRequest(clientKey("register"), 8, 15 * 60 * 1000)) {
       setResponseStatus(429);
-      return { ok: false as const, error: "\u0915\u0943\u092a\u092f\u093e \u0915\u0941\u091b \u0926\u0947\u0930 \u092c\u093e\u0926 \u092a\u0941\u0928\u0903 \u092a\u094d\u0930\u092f\u093e\u0938 \u0915\u0930\u0947\u0902\u0964" };
+      return { ok: false as const, error: "कृपया कुछ देर बाद पुनः प्रयास करें।" };
     }
 
     if (data.website && data.website.trim().length > 0) {
@@ -83,7 +82,7 @@ export const submitRegistration = createServerFn({ method: "POST" })
     const block = data.block;
 
     if (!BLOCKS.includes(block)) {
-      return { ok: false as const, error: "\u092c\u094d\u0932\u0949\u0915 \u091a\u0941\u0928\u0947\u0902 \u2014 \u091a\u0939\u0928\u093f\u092f\u093e\u0901 \u092f\u093e \u0938\u0915\u0932\u0921\u0940\u0939\u093e" };
+      return { ok: false as const, error: "कृपया ब्लॉक चुनें — चहनियाँ या सकलडीहा।" };
     }
 
     const sql = await getSql();
@@ -108,37 +107,36 @@ export const submitRegistration = createServerFn({ method: "POST" })
     `;
     const row = rows[0];
     if (!row) {
-      return { ok: false as const, error: "\u092a\u0902\u091c\u0940\u0915\u0930\u0923 \u0938\u0939\u0947\u091c\u093e \u0928\u0939\u0940\u0902 \u091c\u093e \u0938\u0915\u093e\u0964 \u092a\u0941\u0928\u0903 \u092a\u094d\u0930\u092f\u093e\u0938 \u0915\u0930\u0947\u0902\u0964" };
+      return { ok: false as const, error: "पंजीकरण सहेजा नहीं जा सका। पुनः प्रयास करें।" };
     }
     return { ok: true as const, registrationNumber: row.registration_number };
   });
 
 export const adminLogin = createServerFn({ method: "POST" })
-  .validator(z.object({ password: z.string().min(1, "\u092a\u093e\u0938\u0935\u0930\u094d\u0921 \u0906\u0935\u0936\u094d\u092f\u0915 \u0939\u0948") }))
+  .validator(z.object({ password: z.string().min(1, "पासवर्ड आवश्यक है") }))
   .handler(async ({ data }) => {
-    const {
-      assertSameOriginWrite,
-      clientKey,
-      loginWithPassword,
-      usingPreviewAdminPassword,
-    } = await import("./admin-session.server");
+    const { assertSameOriginWrite, clientKey, loginWithPassword } = await import(
+      "./admin-session.server"
+    );
     const { allowRequest } = await import("./rate-limit.server");
     const { setResponseStatus } = await import("@tanstack/react-start/server");
 
     assertSameOriginWrite();
     if (!allowRequest(clientKey("admin-login"), 8, 15 * 60 * 1000)) {
       setResponseStatus(429);
-      return { ok: false as const, error: "\u092c\u0939\u0941\u0924 \u0905\u0927\u093f\u0915 \u092a\u094d\u0930\u092f\u093e\u0938\u0964 \u0915\u0941\u091b \u0926\u0947\u0930 \u092c\u093e\u0926 \u0915\u094b\u0936\u093f\u0936 \u0915\u0930\u0947\u0902\u0964" };
+      return { ok: false as const, error: "बहुत अधिक प्रयास। कुछ देर बाद कोशिश करें।" };
     }
-    const token = await loginWithPassword(data.password);
-    if (!token) {
-      return { ok: false as const, error: "\u092a\u093e\u0938\u0935\u0930\u094d\u0921 \u0917\u0932\u0924 \u0939\u0948\u0964" };
+    const result = await loginWithPassword(data.password);
+    if (result === "unconfigured") {
+      return {
+        ok: false as const,
+        error: "प्रशासन पासवर्ड कॉन्फ़िगर नहीं है। ADMIN_PASSWORD सेट करें।",
+      };
     }
-    return {
-      ok: true as const,
-      token,
-      previewHint: usingPreviewAdminPassword(),
-    };
+    if (result !== "ok") {
+      return { ok: false as const, error: "पासवर्ड गलत है।" };
+    }
+    return { ok: true as const };
   });
 
 export const adminLogout = createServerFn({ method: "POST" }).handler(async () => {
@@ -147,23 +145,23 @@ export const adminLogout = createServerFn({ method: "POST" }).handler(async () =
   return { ok: true as const };
 });
 
-export const checkAdminSession = createServerFn({ method: "POST" })
-  .validator(adminTokenSchema)
-  .handler(async ({ data }) => {
-    const { readAdminCookie, verifyAdminToken, usingPreviewAdminPassword } =
-      await import("./admin-session.server");
-    const cookie = readAdminCookie();
-    const authed =
-      (await verifyAdminToken(cookie)) || (await verifyAdminToken(data.token));
-    return { authed, previewHint: usingPreviewAdminPassword() };
-  });
+export const checkAdminSession = createServerFn({ method: "POST" }).handler(async () => {
+  const { readAdminCookie, verifyAdminToken, adminAuthConfigured } = await import(
+    "./admin-session.server"
+  );
+  const cookie = readAdminCookie();
+  return {
+    authed: await verifyAdminToken(cookie),
+    configured: adminAuthConfigured(),
+  };
+});
 
 export const listRegistrations = createServerFn({ method: "POST" })
   .validator(adminListSchema)
   .handler(async ({ data }) => {
     const { requireAdmin } = await import("./admin-session.server");
     const { getSql } = await import("./db");
-    await requireAdmin(data.token);
+    await requireAdmin();
     const sql = await getSql();
 
     const name = sanitizeText(data.name, 80);
@@ -223,7 +221,7 @@ export const updateRegistrationStatus = createServerFn({ method: "POST" })
     );
     const { getSql } = await import("./db");
     assertSameOriginWrite();
-    await requireAdmin(data.token);
+    await requireAdmin();
     const sql = await getSql();
     const rows = await sql<DbRegistration>`
       update registrations
@@ -232,16 +230,15 @@ export const updateRegistrationStatus = createServerFn({ method: "POST" })
       returning *
     `;
     const row = rows[0];
-    if (!row) throw new Error("\u092a\u0902\u091c\u0940\u0915\u0930\u0923 \u0928\u0939\u0940\u0902 \u092e\u093f\u0932\u093e");
+    if (!row) throw new Error("पंजीकरण नहीं मिला");
     return mapRow(row);
   });
 
-export const exportRegistrationsCsv = createServerFn({ method: "POST" })
-  .validator(adminTokenSchema)
-  .handler(async ({ data }) => {
+export const exportRegistrationsCsv = createServerFn({ method: "POST" }).handler(
+  async () => {
     const { requireAdmin } = await import("./admin-session.server");
     const { getSql } = await import("./db");
-    await requireAdmin(data.token);
+    await requireAdmin();
     const sql = await getSql();
     const rows = await sql<DbRegistration>`
       select * from registrations order by id asc
@@ -285,4 +282,5 @@ export const exportRegistrationsCsv = createServerFn({ method: "POST" })
       }),
     ];
     return { csv: `\uFEFF${lines.join("\n")}` };
-  });
+  },
+);
