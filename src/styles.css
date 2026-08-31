@@ -1,0 +1,87 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@theme {
+  --color-saffron: #d35400;
+  --color-saffron-deep: #b84300;
+  --color-saffron-soft: #f4c9a3;
+  --color-maroon: #6b1d1d;
+  --color-maroon-deep: #4a1212;
+  --color-navy: #1b2a4a;
+  --color-cream: #fff8f0;
+  --color-paper: #fffdf9;
+  --color-ink: #1a1510;
+  --color-muted: #6b5e52;
+  --color-line: #ead9c8;
+  --color-success: #1f7a4d;
+  --color-danger: #b42318;
+  --color-info: #1d4e89;
+
+  --font-display: "Tiro Devanagari Hindi", "Noto Serif Devanagari", "Noto Serif", serif;
+  --font-sans: "Noto Sans Devanagari", "Noto Sans", system-ui, sans-serif;
+
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+
+  --shadow-card: 0 0 0 1px rgb(26 21 16 / 0.06), 0 1px 2px -1px rgb(26 21 16 / 0.06),
+    0 8px 24px -12px rgb(107 29 29 / 0.18);
+  --shadow-lift: 0 0 0 1px rgb(26 21 16 / 0.08), 0 10px 28px -12px rgb(211 84 0 / 0.28);
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background: var(--color-cream);
+    color: var(--color-ink);
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background: var(--color-cream);
+    color: var(--color-ink);
+    min-height: 100dvh;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+    font-family: var(--font-display);
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--color-saffron);
+    outline-offset: 2px;
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: var(--font-display);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
