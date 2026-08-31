@@ -5,10 +5,12 @@ export function QrCode({
   value,
   label,
   size = 196,
+  id,
 }: {
   value: string;
   label?: string;
   size?: number;
+  id?: string;
 }) {
   const { size: modules, path } = useMemo(() => {
     const qr = encode(value, { ecc: "M", border: 2 });
@@ -24,6 +26,7 @@ export function QrCode({
   return (
     <figure className="flex flex-col items-center">
       <svg
+        id={id}
         width={size}
         height={size}
         viewBox={`0 0 ${modules} ${modules}`}
