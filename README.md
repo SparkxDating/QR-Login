@@ -1,6 +1,8 @@
 # QR-Login — निःशुल्क मोतियाबिंद शिविर पंजीकरण
 
-Mobile-first Hindi registration for **त्रिशक्ति सेवा फाउण्डेशन** and **RJ Shankara Eye Hospital, Varanasi**.
+Mobile-first Hindi registration for **त्रिशक्ति सेवा फाउंडेशन** and **RJ Shankara Eye Hospital, Varanasi**.
+
+Camp date: **06 सितंबर 2026**
 
 Public form: `/` and `/register`  
 Admin dashboard: `/admin`
@@ -10,27 +12,27 @@ Admin dashboard: `/admin`
 - Hindi registration form with 10-digit Indian mobile validation
 - Unique registration numbers (`TSF-2026-00001`)
 - Downloadable confirmation slip
-- Protected admin dashboard (search, filters, status workflow, CSV export, QR code)
+- Protected admin dashboard (search, filters, status workflow, CSV export, printable QR)
 - Postgres in production (Neon); embedded PGLite in local preview
 
 ## Setup
 
 ```bash
+cp .env.example .env
+# set ADMIN_PASSWORD (required for /admin)
 npm install
 npm run dev
 ```
-
-The app listens on port `8080`.
 
 ## Environment variables
 
 | Variable | Required | Purpose |
 |---|---|---|
-| `DATABASE_URL` | On deploy | Postgres connection string |
-| `ADMIN_PASSWORD` | **Yes in production** | Admin login |
+| `ADMIN_PASSWORD` | **Yes** for `/admin` | Admin login. No fallback. |
 | `ADMIN_SESSION_SECRET` | Optional | Session signing secret |
+| `DATABASE_URL` | On deploy | Postgres connection string |
 
-Local/preview admin password (only when `ADMIN_PASSWORD` is unset): `Trishakti@2026`
+There is **no default admin password**. If `ADMIN_PASSWORD` is unset, admin login is disabled.
 
 ## Scripts
 
@@ -40,13 +42,13 @@ Local/preview admin password (only when `ADMIN_PASSWORD` is unset): `Trishakti@2
 
 ## Photos
 
-Replace placeholder silhouettes in `public/photos/` with approved portraits:
+Replace framed placeholders in `public/photos/` with approved portraits (same filenames):
 
-- `narendra-modi.svg`
-- `yogi-adityanath.svg`
-- `ambarish-singh-bhola.svg`
+- `narendra-modi.jpg`
+- `yogi-adityanath.jpg`
+- `ambarish-singh-bhola.jpg`
 
-Or drop JPG/PNG files and update paths in `src/lib/camp.ts`.
+PNG also works if you update the paths in `src/lib/camp.ts`.
 
 ## License
 
