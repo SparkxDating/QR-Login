@@ -85,7 +85,8 @@ export const submitRegistration = createServerFn({ method: "POST" })
       return { ok: false as const, error: "कृपया ब्लॉक चुनें — चहनियाँ या सकलडीहा।" };
     }
 
-    const sql = await getSql();
+    try {
+      const sql = await getSql();
     const rows = await sql<DbRegistration>`
       insert into registrations (
         registration_number, name, father_or_husband_name, village, post,
@@ -110,6 +111,20 @@ export const submitRegistration = createServerFn({ method: "POST" })
       return { ok: false as const, error: "पंजीकरण सहेजा नहीं जा सका। पुनः प्रयास करें।" };
     }
     return { ok: true as const, registrationNumber: row.registration_number };
+  } catch (err) {
+    console.error("[register]", err);
+    const message = err instanceof Error ? err.message : "";
+    if (message === "अमान्य अनुरोध") {
+      return { ok: false as const, error: message };
+    }
+    if (message.includes("DATABASE_URL")) {
+      return {
+        ok: false as const,
+        error: "पंजीकरण सेवा अभी तैयार नहीं है। कृपया कुछ देर बाद प्रयास करें।",
+      };
+    }
+    return { ok: false as const, error: "पंजीकरण सहेजा नहीं जा सका। कृपया पुनः प्रयास करें।" };
+  }
   });
 
 export const adminLogin = createServerFn({ method: "POST" })
