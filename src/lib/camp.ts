@@ -9,10 +9,12 @@ export const CAMP = {
   formTitle: "निःशुल्क मोतियाबिंद शिविर पंजीकरण",
   formHeading: "पंजीकरण हेतु विवरण",
   servicesHeading: "शिविर की विशेषताएँ",
+  documentsHeading:
+    "आवश्यक दस्तावेज एवम् सामग्री जो मरीज को जाँच के दिन साथ लाना है",
   subtitle:
     "(चहनियाँ-सकलडीहा ब्लॉक, जनपद-चंदौली के प्रत्येक न्याय पंचायत में)",
   dateLabel: "06 सितंबर 2026",
-  dateLine: "दिनांक: 06 सितंबर 2026",
+  dateLine: "दिनांक 06 सितंबर 2026 से प्रारंभ",
   dayLabel: "रविवार",
   timeLabel: "सुबह 10:00 बजे से सायं 4:00 बजे तक",
   address:
@@ -22,6 +24,7 @@ export const CAMP = {
   organizerRole: "कार्यक्रम संयोजक",
   organizerBoard: "मानद सदस्य, वाराणसी विकास प्राधिकरण बोर्ड",
   organizerGov: "उ०प्र० सरकार",
+  organizerHonor: "मानद सदस्य,वाराणसी विकास प्राधिकरण बोर्ड उ०प्र० सरकार",
   yogiHonorific: "पूज्य योगी आदित्यनाथ जी महाराज",
   districtDefault: "चंदौली",
   freeNote: "रजिस्ट्रेशन एवं जाँच पूर्णतः निःशुल्क",
@@ -56,7 +59,7 @@ export const PHOTOS = {
   yogi: {
     src: "/photos/yogi-adityanath.jpg",
     name: "पूज्य योगी आदित्यनाथ जी महाराज",
-    title: "प्रेरणा स्रोत",
+    title: "",
   },
   modi: {
     src: "/photos/narendra-modi.jpg",

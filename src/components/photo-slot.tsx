@@ -33,10 +33,12 @@ export function PhotoSlot({
   const dark = tone === "dark";
   const customCrop =
     typeof className === "string" &&
-    (className.includes("jagatguru-photo") || className.includes("narendra-modi-photo"));
+    (className.includes("jagatguru-photo") ||
+      className.includes("narendra-modi-photo") ||
+      className.includes("yogi-photo"));
 
   return (
-    <figure className={cn("flex min-w-0 flex-col items-center text-center", className)}>
+    <figure className={cn("flex min-w-0 w-full flex-col items-center text-center", className)}>
       <div
         className={cn(
           "photo-frame relative overflow-hidden bg-cream shadow-[0_0_0_3px_var(--color-cream),0_0_0_7px_var(--color-gold)]",
@@ -64,10 +66,10 @@ export function PhotoSlot({
         )}
       </div>
       {showCaption ? (
-        <figcaption className="mt-2 min-w-0 max-w-44 sm:max-w-52">
+        <figcaption className="mt-2 min-w-0 w-full px-0.5">
           <p
             className={cn(
-              "text-xs font-semibold leading-tight sm:text-sm",
+              "photo-name text-[0.65rem] font-semibold leading-tight sm:text-sm",
               dark ? "text-paper" : "text-maroon",
             )}
           >
@@ -76,7 +78,7 @@ export function PhotoSlot({
           {title ? (
             <p
               className={cn(
-                "mt-0.5 text-xs leading-snug",
+                "photo-title mt-1 text-[0.62rem] leading-snug sm:text-xs",
                 dark ? "text-gold" : "text-navy/75",
               )}
             >

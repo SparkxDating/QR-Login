@@ -116,30 +116,93 @@
     background: linear-gradient(180deg, var(--color-maroon) 0%, var(--color-maroon-deep) 100%);
     color: var(--color-paper);
   }
+
+  .gold-divider {
+    height: 1px;
+    width: min(18rem, 72%);
+    margin-inline: auto;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      var(--color-gold),
+      var(--color-gold-deep),
+      var(--color-gold),
+      transparent
+    );
+    position: relative;
+  }
+
+  .gold-divider::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 0.45rem;
+    height: 0.45rem;
+    background: var(--color-gold);
+    box-shadow: 0 0 0 2px rgb(196 163 90 / 0.25);
+    transform: translate(-50%, -50%) rotate(45deg);
+  }
 }
 
 /* Header inspiration portraits — unlayered so sizing wins over Tailwind on mobile Safari */
 .jagatguru-photo .photo-frame,
-.narendra-modi-photo .photo-frame {
-  width: 140px;
-  height: 140px;
+.narendra-modi-photo .photo-frame,
+.yogi-photo .photo-frame {
+  width: 102px;
+  height: 102px;
   aspect-ratio: 1 / 1;
   border-radius: 50%;
   overflow: hidden;
   flex-shrink: 0;
   background: var(--color-cream);
+  box-shadow:
+    0 0 0 2px var(--color-cream),
+    0 0 0 4px var(--color-gold);
+}
+
+@media (min-width: 390px) {
+  .jagatguru-photo .photo-frame,
+  .narendra-modi-photo .photo-frame,
+  .yogi-photo .photo-frame {
+    width: 104px;
+    height: 104px;
+  }
+}
+
+@media (min-width: 414px) {
+  .jagatguru-photo .photo-frame,
+  .narendra-modi-photo .photo-frame,
+  .yogi-photo .photo-frame {
+    width: 112px;
+    height: 112px;
+  }
 }
 
 @media (min-width: 640px) {
   .jagatguru-photo .photo-frame,
-  .narendra-modi-photo .photo-frame {
-    width: 200px;
-    height: 200px;
+  .narendra-modi-photo .photo-frame,
+  .yogi-photo .photo-frame {
+    width: 180px;
+    height: 180px;
+    box-shadow:
+      0 0 0 3px var(--color-cream),
+      0 0 0 7px var(--color-gold);
+  }
+}
+
+@media (min-width: 768px) {
+  .jagatguru-photo .photo-frame,
+  .narendra-modi-photo .photo-frame,
+  .yogi-photo .photo-frame {
+    width: 220px;
+    height: 220px;
   }
 }
 
 .jagatguru-photo img,
-.narendra-modi-photo img {
+.narendra-modi-photo img,
+.yogi-photo img {
   display: block;
   width: 100%;
   height: 100%;
@@ -148,13 +211,42 @@
 }
 
 .jagatguru-photo img {
-  object-fit: contain;
-  object-position: center center;
+  object-fit: cover;
+  object-position: center 8%;
 }
 
 .narendra-modi-photo img {
   object-fit: cover;
-  object-position: center center;
+  object-position: center 22%;
+}
+
+.yogi-photo img {
+  object-fit: cover;
+  object-position: center 18%;
+}
+
+.inspiration-row .photo-name {
+  display: inline-block;
+  max-width: 100%;
+  background: var(--color-maroon);
+  color: var(--color-paper);
+  border-radius: 999px;
+  padding: 0.28rem 0.42rem;
+  font-size: 0.62rem;
+  line-height: 1.3;
+  font-weight: 600;
+}
+
+.inspiration-row .photo-title {
+  color: var(--color-navy);
+  opacity: 0.8;
+}
+
+@media (min-width: 640px) {
+  .inspiration-row .photo-name {
+    font-size: 0.8rem;
+    padding: 0.35rem 0.85rem;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

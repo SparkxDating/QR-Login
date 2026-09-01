@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import { CAMP, DOCUMENTS, PHOTOS, SERVICES } from "@/lib/camp";
 import { CampHeader } from "@/components/camp-header";
 import { CampFooter } from "@/components/camp-footer";
@@ -15,7 +14,7 @@ const SERVICE_ICONS = {
 
 export function RegistrationPage() {
   return (
-    <div className="poster-shell min-h-dvh">
+    <div className="poster-shell min-h-dvh overflow-x-hidden">
       <CampHeader />
 
       <main className="mx-auto max-w-5xl px-4 py-4 sm:px-6 sm:py-7">
@@ -42,14 +41,16 @@ export function RegistrationPage() {
         </section>
 
         <div className="mt-6 grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_17.5rem]">
-          <OrganizerCard className="lg:hidden" compact />
           <RegistrationForm />
+          <OrganizerCard className="lg:hidden" compact />
           <OrganizerCard className="hidden lg:block" />
         </div>
 
-        <section className="mt-5 rounded-xl bg-paper px-4 py-4 shadow-[var(--shadow-card)] sm:px-5">
-          <h3 className="font-display text-lg text-navy">आवश्यक दस्तावेज एवं सामग्री</h3>
-          <ol className="mt-3 grid gap-2 text-sm text-ink">
+        <section className="mt-5 overflow-hidden rounded-xl bg-paper shadow-[var(--shadow-card)]">
+          <h3 className="banner-maroon px-3 py-2.5 text-center font-display text-sm leading-snug sm:px-5 sm:text-lg">
+            {CAMP.documentsHeading}
+          </h3>
+          <ol className="grid gap-2 px-4 py-4 text-sm text-ink sm:grid-cols-2 sm:px-5">
             {DOCUMENTS.map((doc, i) => (
               <li key={doc} className="flex gap-2">
                 <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-saffron text-xs font-semibold text-paper">
@@ -59,11 +60,12 @@ export function RegistrationPage() {
               </li>
             ))}
           </ol>
-          <p className="mt-3 text-sm font-medium text-success">{CAMP.operationNote}</p>
+          <p className="px-4 pb-4 text-sm font-medium text-success sm:px-5">
+            {CAMP.operationNote}
+          </p>
         </section>
       </main>
 
-      <YogiInspiration />
       <CampFooter />
     </div>
   );
@@ -91,54 +93,19 @@ function OrganizerCard({
         tone="dark"
         objectPosition="center 18%"
         showCaption={false}
-        className={compact ? "shrink-0" : undefined}
+        className={compact ? "w-auto shrink-0" : undefined}
       />
       <div className={compact ? "min-w-0" : "mt-4"}>
         <p className="text-xs font-semibold tracking-wide text-gold sm:text-sm">
           {CAMP.organizerRole}
         </p>
-        <p className="mt-1 font-display text-lg leading-snug sm:text-xl">{CAMP.organizer}</p>
-        <p className="mt-2 text-xs leading-snug text-paper/85 sm:text-sm">{CAMP.organizerBoard}</p>
-        <p className="mt-1 text-xs font-semibold text-gold sm:text-sm">{CAMP.organizerGov}</p>
+        <p className="mt-1 font-display text-lg leading-snug text-gold sm:text-xl">
+          {CAMP.organizer}
+        </p>
+        <p className="mt-2 text-xs leading-snug text-paper/90 sm:text-sm">
+          {CAMP.organizerHonor}
+        </p>
       </div>
     </aside>
-  );
-}
-
-function YogiInspiration() {
-  return (
-    <section className="banner-saffron mt-4">
-      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-10">
-        <FlourishLight>
-          <p className="font-display text-lg tracking-wide text-paper sm:text-xl">
-            {CAMP.inspiration}
-          </p>
-        </FlourishLight>
-        <div className="mt-5 flex flex-col items-center">
-          <PhotoSlot
-            {...PHOTOS.yogi}
-            size="xl"
-            tone="dark"
-            objectPosition="center 20%"
-            showCaption={false}
-          />
-          <p className="mt-4 text-center font-display text-xl leading-snug text-paper sm:text-3xl">
-            {CAMP.yogiHonorific}
-          </p>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function FlourishLight({ children }: { children: ReactNode }) {
-  return (
-    <div className="ornament">
-      <span className="ornament-rule" aria-hidden="true" />
-      <span className="ornament-diamond bg-paper" aria-hidden="true" />
-      {children}
-      <span className="ornament-diamond bg-paper" aria-hidden="true" />
-      <span className="ornament-rule rotate-180" aria-hidden="true" />
-    </div>
   );
 }

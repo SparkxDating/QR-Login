@@ -9,9 +9,6 @@ export function CampFooter() {
         <p className="text-center font-display text-base leading-snug sm:text-lg">
           {CAMP.foundation} एवं {CAMP.hospital}
         </p>
-        <p className="mt-3 text-center font-display text-lg font-semibold text-saffron sm:text-xl">
-          {CAMP.freeNote}
-        </p>
         <div className="mt-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-sm text-navy">
           <Phone className="size-4 text-gold" aria-hidden="true" />
           {CAMP.phones.map((phone) => (
@@ -30,6 +27,9 @@ export function CampFooter() {
           </Link>
         </p>
       </div>
+      <p className="banner-maroon px-4 py-3 text-center font-display text-base font-semibold sm:text-xl">
+        {CAMP.freeNote}
+      </p>
     </footer>
   );
 }
