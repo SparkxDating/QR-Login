@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 import { CAMP, PHOTOS } from "@/lib/camp";
 import { PhotoSlot } from "@/components/photo-slot";
-import { CalendarDays } from "lucide-react";
 
 export function CampHeader() {
   return (
@@ -30,7 +29,14 @@ export function CampHeader() {
         <div className="gold-divider mt-6" aria-hidden="true" />
 
         <div className="mt-5 text-center">
-          <h1 className="font-display text-xl leading-snug text-maroon sm:text-3xl">
+          <img
+            src={CAMP.logo.src}
+            alt={CAMP.logo.alt}
+            className="trishakti-logo mx-auto"
+            width={148}
+            height={148}
+          />
+          <h1 className="mt-3 font-display text-xl leading-snug text-maroon sm:text-3xl">
             {CAMP.foundation}
           </h1>
           <p className="mt-1 text-sm font-semibold tracking-wide text-gold-deep">एवं</p>
@@ -46,13 +52,14 @@ export function CampHeader() {
             {CAMP.campaign}
           </p>
           <h2 className="mx-auto mt-3 max-w-xl font-display text-lg leading-snug text-maroon sm:mt-4 sm:text-3xl">
-            {CAMP.title}
+            {CAMP.titleLine1}
+            <br />
+            {CAMP.titleLine2}
           </h2>
           <p className="mx-auto mt-3 max-w-lg text-sm leading-relaxed text-navy/80 sm:text-base">
             {CAMP.subtitle}
           </p>
-          <p className="banner-maroon mx-auto mt-4 inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold sm:text-base">
-            <CalendarDays className="size-4 shrink-0 text-gold" aria-hidden="true" />
+          <p className="announce-date mx-auto mt-4 max-w-xl px-3 py-3 text-sm font-semibold leading-snug sm:text-lg">
             {CAMP.dateLine}
           </p>
         </div>

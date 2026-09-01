@@ -143,6 +143,16 @@
     box-shadow: 0 0 0 2px rgb(196 163 90 / 0.25);
     transform: translate(-50%, -50%) rotate(45deg);
   }
+
+  .announce-date {
+    display: block;
+    border: 2px solid var(--color-gold);
+    border-radius: var(--radius-md);
+    background: linear-gradient(180deg, var(--color-saffron) 0%, var(--color-saffron-deep) 100%);
+    color: var(--color-paper);
+    box-shadow: 0 0 0 4px rgb(196 163 90 / 0.22);
+    font-family: var(--font-display);
+  }
 }
 
 /* Header inspiration portraits — unlayered so sizing wins over Tailwind on mobile Safari */
@@ -242,10 +252,23 @@
   opacity: 0.8;
 }
 
+.trishakti-logo {
+  display: block;
+  width: 108px;
+  height: 108px;
+  object-fit: contain;
+  object-position: center center;
+}
+
 @media (min-width: 640px) {
   .inspiration-row .photo-name {
     font-size: 0.8rem;
     padding: 0.35rem 0.85rem;
+  }
+
+  .trishakti-logo {
+    width: 148px;
+    height: 148px;
   }
 }
 

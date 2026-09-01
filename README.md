@@ -2,7 +2,7 @@
 
 Mobile-first Hindi registration for **त्रिशक्ति सेवा फाउंडेशन** and **RJ Shankara Eye Hospital, Varanasi**.
 
-Camp date: **06 सितंबर 2026**
+Camp start: **चहनियाँ ब्लॉक में 15 सितंबर 2026 से कार्यक्रम का शुभारंभ होगा**
 
 Public form: `/` and `/register`  
 Admin dashboard: `/admin`
@@ -65,8 +65,9 @@ There is **no default admin password**. If `ADMIN_PASSWORD` is unset, admin logi
 
 ## Photos
 
-Approved portraits in `public/photos/`:
+Approved portraits and logo in `public/photos/`:
 
+- `trishakti-seva-foundation.jpg`
 - `narendra-modi.jpg`
 - `yogi-adityanath.jpg`
 - `ambarish-singh-bhola.jpg`

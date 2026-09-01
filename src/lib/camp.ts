@@ -6,31 +6,36 @@ export const CAMP = {
   campaign: "मासिक अभियान",
   inspiration: "प्रेरणा स्रोत",
   title: "वृहद निःशुल्क मोतियाबिंद जाँच एवं ऑपरेशन शिविर",
+  titleLine1: "वृहद निःशुल्क मोतियाबिंद",
+  titleLine2: "जाँच एवं ऑपरेशन शिविर",
   formTitle: "निःशुल्क मोतियाबिंद शिविर पंजीकरण",
   formHeading: "पंजीकरण हेतु विवरण",
   servicesHeading: "शिविर की विशेषताएँ",
   documentsHeading:
     "आवश्यक दस्तावेज एवम् सामग्री जो मरीज को जाँच के दिन साथ लाना है",
+  contactHeading: "अधिक जानकारी के लिए नीचे दिए गए नंबर से संपर्क करें",
   subtitle:
     "(चहनियाँ-सकलडीहा ब्लॉक, जनपद-चंदौली के प्रत्येक न्याय पंचायत में)",
-  dateLabel: "06 सितंबर 2026",
-  dateLine: "दिनांक 06 सितंबर 2026 से प्रारंभ",
-  dayLabel: "रविवार",
+  dateLabel: "15 सितंबर 2026",
+  dateLine: "चहनियाँ ब्लॉक में 15 सितंबर 2026 से कार्यक्रम का शुभारंभ होगा",
+  dayLabel: "मंगलवार",
   timeLabel: "सुबह 10:00 बजे से सायं 4:00 बजे तक",
   address:
     "रिंग रोड - फेस 1, माधोपुर, सीएचसीजी पम्प के पास, वाराणसी - 221003",
-  phones: ["9453793949", "9616656572", "7678821001"] as const,
   organizer: "अम्बरीश सिंह “भोला”",
   organizerRole: "कार्यक्रम संयोजक",
   organizerBoard: "मानद सदस्य, वाराणसी विकास प्राधिकरण बोर्ड",
   organizerGov: "उ०प्र० सरकार",
   organizerHonor: "मानद सदस्य,वाराणसी विकास प्राधिकरण बोर्ड उ०प्र० सरकार",
-  yogiHonorific: "पूज्य योगी आदित्यनाथ जी महाराज",
   districtDefault: "चंदौली",
   freeNote: "रजिस्ट्रेशन एवं जाँच पूर्णतः निःशुल्क",
   operationNote: "जाँच एवं ऑपरेशन पूरी तरह निःशुल्क किया जाएगा।",
   privacyNote:
     "आपकी दी गई जानकारी केवल शिविर पंजीकरण एवं आवश्यक संपर्क के लिए उपयोग की जाएगी।",
+  logo: {
+    src: "/photos/trishakti-seva-foundation.jpg",
+    alt: "त्रिशक्ति सेवा फाउंडेशन",
+  },
 } as const;
 
 export const BLOCKS = ["चहनियाँ", "सकलडीहा"] as const;
@@ -58,12 +63,12 @@ export function statusLabel(value: string): string {
 export const PHOTOS = {
   yogi: {
     src: "/photos/yogi-adityanath.jpg",
-    name: "पूज्य योगी आदित्यनाथ जी महाराज",
-    title: "",
+    name: "योगी आदित्यनाथ जी",
+    title: "मुख्यमंत्री उत्तर प्रदेश",
   },
   modi: {
     src: "/photos/narendra-modi.jpg",
-    name: "श्री नरेन्द्र मोदी",
+    name: "श्री नरेंद्र मोदी जी",
     title: "माननीय प्रधानमंत्री",
   },
   jagatguru: {
@@ -77,6 +82,14 @@ export const PHOTOS = {
     title: "कार्यक्रम संयोजक",
   },
 } as const;
+
+export const CONTACTS = [
+  { name: "रामदयाल यादव रिंकू", phone: "9453889858" },
+  { name: "अतुल सिंह रघुवंशी", phone: "9453793949" },
+  { name: "हरिश्चंद्र यादव", phone: "7389848701" },
+  { name: "रामदयाल साहनी", phone: "8299108081" },
+  { name: "मोहित राय", phone: "7237847349" },
+] as const;
 
 export const SERVICES = [
   { title: "निःशुल्क मोतियाबिंद जाँच", icon: "eye" },
