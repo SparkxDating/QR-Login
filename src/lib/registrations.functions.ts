@@ -50,6 +50,9 @@ function mapRow(row: DbRegistration): RegistrationRow {
   };
 }
 
+const TECHNICAL_ERROR =
+  "पंजीकरण सेवा में तकनीकी समस्या है। कृपया कुछ देर बाद पुनः प्रयास करें।";
+
 export const submitRegistration = createServerFn({ method: "POST" })
   .validator(registrationInputSchema)
   .handler(async ({ data }) => {
@@ -87,7 +90,7 @@ export const submitRegistration = createServerFn({ method: "POST" })
 
     try {
       const sql = await getSql();
-    const rows = await sql<DbRegistration>`
+      const rows = await sql<DbRegistration>`
       insert into registrations (
         registration_number, name, father_or_husband_name, village, post,
         nyaya_panchayat, block, tehsil, district, mobile, note
@@ -106,25 +109,19 @@ export const submitRegistration = createServerFn({ method: "POST" })
       )
       returning *
     `;
-    const row = rows[0];
-    if (!row) {
-      return { ok: false as const, error: "पंजीकरण सहेजा नहीं जा सका। पुनः प्रयास करें।" };
+      const row = rows[0];
+      if (!row) {
+        return { ok: false as const, error: "पंजीकरण सहेजा नहीं जा सका। पुनः प्रयास करें।" };
+      }
+      return { ok: true as const, registrationNumber: row.registration_number };
+    } catch (err) {
+      console.error("[register]", err);
+      const message = err instanceof Error ? err.message : "";
+      if (message === "अमान्य अनुरोध") {
+        return { ok: false as const, error: message };
+      }
+      return { ok: false as const, error: TECHNICAL_ERROR };
     }
-    return { ok: true as const, registrationNumber: row.registration_number };
-  } catch (err) {
-    console.error("[register]", err);
-    const message = err instanceof Error ? err.message : "";
-    if (message === "अमान्य अनुरोध") {
-      return { ok: false as const, error: message };
-    }
-    if (message.includes("DATABASE_URL")) {
-      return {
-        ok: false as const,
-        error: "पंजीकरण सेवा अभी तैयार नहीं है। कृपया कुछ देर बाद प्रयास करें।",
-      };
-    }
-    return { ok: false as const, error: "पंजीकरण सहेजा नहीं जा सका। कृपया पुनः प्रयास करें।" };
-  }
   });
 
 export const adminLogin = createServerFn({ method: "POST" })

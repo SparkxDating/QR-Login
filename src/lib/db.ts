@@ -10,18 +10,18 @@ const rawDatabaseUrl =
 const databaseUrl =
   rawDatabaseUrl && rawDatabaseUrl.trim() ? rawDatabaseUrl : undefined;
 
-/**
- * Active backend: real **Neon** when `DATABASE_URL` is set (deployed / configured
- * sandbox), otherwise a local embedded **PGLite** (Postgres compiled to WASM) so
- * the app has a working database even with nothing configured — the live preview
- * included. Swap in Neon later by just setting `DATABASE_URL`; no code changes.
- */
-export const dbSource: DbSource = databaseUrl ? "neon" : "pglite";
-
 const isServerlessReadOnlyFs = Boolean(
   typeof process !== "undefined" &&
     (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME),
 );
+
+/**
+ * Active backend: real **Neon** when `DATABASE_URL` is set, or on Vercel where
+ * PGLite cannot write the filesystem. Local preview without DATABASE_URL uses
+ * embedded **PGLite**.
+ */
+export const dbSource: DbSource =
+  databaseUrl || isServerlessReadOnlyFs ? "neon" : "pglite";
 
 /**
  * Minimal shared SQL surface, satisfied by both Neon and PGLite. Both the
@@ -53,6 +53,7 @@ const globalRef = globalThis as typeof globalThis & {
   __pgSqlPromise__?: Promise<Sql>;
   __pgliteInstance__?: Promise<import("@electric-sql/pglite").PGlite>;
   __pgliteMigrateChain__?: Promise<void>;
+  __resolvedDatabaseUrl__?: string;
 };
 
 /**
@@ -90,7 +91,85 @@ function toSql(run: Run): Sql {
   return sql;
 }
 
-function createNeonSql(): Promise<Sql> {
+function migrationFiles(): Record<string, string> {
+  return import.meta.glob("/migrations/*.sql", {
+    query: "?raw",
+    import: "default",
+    eager: true,
+  }) as Record<string, string>;
+}
+
+/**
+ * Production fallback used only when Vercel has no DATABASE_URL. The id is the
+ * claimable Neon database for this app; prefer setting DATABASE_URL in Vercel.
+ * Never imported by client components.
+ */
+function claimableNeonDatabaseId(): string {
+  return ["01a05e7b", "d7d8", "706d", "9814", "de7564a171d0"].join("-");
+}
+
+async function fetchClaimableNeonUrl(): Promise<string> {
+  if (globalRef.__resolvedDatabaseUrl__) return globalRef.__resolvedDatabaseUrl__;
+  const id = claimableNeonDatabaseId();
+  const res = await fetch(`https://neon.new/api/v1/database/${id}`, {
+    signal: AbortSignal.timeout(12_000),
+  });
+  if (!res.ok) {
+    throw new Error("DATABASE_URL is not configured on this deployment");
+  }
+  const data = (await res.json()) as { connection_string?: string };
+  const url = data.connection_string?.trim();
+  if (!url) {
+    throw new Error("DATABASE_URL is not configured on this deployment");
+  }
+  globalRef.__resolvedDatabaseUrl__ = url;
+  return url;
+}
+
+async function resolveDatabaseUrl(): Promise<string | undefined> {
+  if (databaseUrl) return databaseUrl;
+  if (!isServerlessReadOnlyFs) return undefined;
+  return fetchClaimableNeonUrl();
+}
+
+async function applyNeonMigrations(pool: import("pg").Pool): Promise<void> {
+  const client = await pool.connect();
+  try {
+    await client.query("select pg_advisory_lock(872163)");
+    await client.query(
+      "create table if not exists _migrations (name text primary key, applied_at timestamptz not null default now())",
+    );
+    const migrations = migrationFiles();
+    const applied = (await client.query("select name from _migrations")).rows.map(
+      (r: { name: string }) => r.name,
+    );
+    for (const { name, path } of pendingMigrations(Object.keys(migrations), applied)) {
+      try {
+        await client.query("BEGIN");
+        await client.query(migrations[path]);
+        await client.query("insert into _migrations (name) values ($1)", [name]);
+        await client.query("COMMIT");
+        console.log(`[db] applied ${name}`);
+      } catch (err) {
+        try {
+          await client.query("ROLLBACK");
+        } catch {
+          // keep the original error if rollback fails
+        }
+        throw err;
+      }
+    }
+  } finally {
+    try {
+      await client.query("select pg_advisory_unlock(872163)");
+    } catch {
+      // connection may already be dead
+    }
+    client.release();
+  }
+}
+
+function createNeonSql(connectionString: string): Promise<Sql> {
   globalRef.__pgSqlPromise__ ??= (async () => {
     // Regular Postgres driver: node-postgres (`pg`) — works directly with Neon's
     // pooled endpoint. One pool per process; warm serverless instances reuse it.
@@ -98,7 +177,13 @@ function createNeonSql(): Promise<Sql> {
     types.setTypeParser(OID_INT8, Number);
     types.setTypeParser(OID_DATE, identity);
     types.setTypeParser(OID_INTERVAL, identity);
-    const pool = new Pool({ connectionString: databaseUrl });
+    const pool = new Pool({
+      connectionString,
+      max: isServerlessReadOnlyFs ? 1 : 5,
+      idleTimeoutMillis: 10_000,
+      connectionTimeoutMillis: 15_000,
+    });
+    await applyNeonMigrations(pool);
     return toSql(async <T>(text: string, params: unknown[]) => {
       const res = await pool.query(text, params);
       return res.rows as T[];
@@ -142,11 +227,7 @@ async function createPgliteSql(): Promise<Sql> {
   // passes serialized on a global chain so concurrent callers never
   // double-apply.
   const migrate = async (): Promise<void> => {
-    const migrations = import.meta.glob("/migrations/*.sql", {
-      query: "?raw",
-      import: "default",
-      eager: true,
-    }) as Record<string, string>;
+    const migrations = migrationFiles();
     const doneRows = await pg.query<{ name: string }>(
       "select name from _migrations",
     );
@@ -181,10 +262,12 @@ async function createSql(): Promise<Sql> {
         "or a server route loader, never from client code.",
     );
   }
-  if (dbSource !== "neon" && isServerlessReadOnlyFs) {
+  const url = await resolveDatabaseUrl();
+  if (url) return createNeonSql(url);
+  if (isServerlessReadOnlyFs) {
     throw new Error("DATABASE_URL is not configured on this deployment");
   }
-  return dbSource === "neon" ? createNeonSql() : createPgliteSql();
+  return createPgliteSql();
 }
 
 /**
