@@ -145,6 +145,9 @@ export const adminLogin = createServerFn({ method: "POST" })
         error: "प्रशासन पासवर्ड कॉन्फ़िगर नहीं है। ADMIN_PASSWORD सेट करें।",
       };
     }
+    if (result === "unavailable") {
+      return { ok: false as const, error: "प्रशासन सेवा में समस्या है। कुछ देर बाद कोशिश करें।" };
+    }
     if (result !== "ok") {
       return { ok: false as const, error: "पासवर्ड गलत है।" };
     }
@@ -164,7 +167,7 @@ export const checkAdminSession = createServerFn({ method: "POST" }).handler(asyn
   const cookie = readAdminCookie();
   return {
     authed: await verifyAdminToken(cookie),
-    configured: adminAuthConfigured(),
+    configured: await adminAuthConfigured(),
   };
 });
 

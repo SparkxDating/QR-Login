@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from "react";
-import { changeAdminPassword, recoverAdminPassword } from "@/lib/registrations.functions";
+import { changeAdminPassword, recoverAdminPassword } from "@/lib/admin-auth.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

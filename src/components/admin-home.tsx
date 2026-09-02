@@ -13,7 +13,8 @@ import { Label } from "@/components/ui/label";
 import { QrCode } from "@/components/qr-code";
 import { downloadQrPng, printQr } from "@/lib/qr-print";
 import { AdminRegistrationList, Stat } from "@/components/admin-rows";
-import { Download, LogOut, Printer, Search } from "lucide-react";
+import { AdminPasswordChangeForm } from "@/components/admin-password";
+import { Download, KeyRound, LogOut, Printer, Search } from "lucide-react";
 
 export function AdminHome({ onLogout }: { onLogout: () => void }) {
   const [name, setName] = useState("");
@@ -29,6 +30,7 @@ export function AdminHome({ onLogout }: { onLogout: () => void }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [registerUrl, setRegisterUrl] = useState("/register");
+  const [showPassword, setShowPassword] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -92,7 +94,11 @@ export function AdminHome({ onLogout }: { onLogout: () => void }) {
             <h1 className="font-display text-xl">प्रशासन डैशबोर्ड</h1>
             <p className="text-sm text-saffron-soft">{CAMP.dateLine}</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            <Button variant="secondary" size="sm" onClick={() => setShowPassword((open) => !open)}>
+              <KeyRound className="size-4" aria-hidden="true" />
+              पासवर्ड बदलें
+            </Button>
             <Button variant="secondary" size="sm" onClick={() => void onExport()}>
               <Download className="size-4" aria-hidden="true" />
               CSV
@@ -106,7 +112,8 @@ export function AdminHome({ onLogout }: { onLogout: () => void }) {
       </header>
 
       <main className="mx-auto max-w-6xl px-4 py-5">
-        <div className="grid gap-3 sm:grid-cols-2">
+        {showPassword ? <AdminPasswordChangeForm onCancel={() => setShowPassword(false)} /> : null}
+        <div className={`grid gap-3 sm:grid-cols-2${showPassword ? " mt-5" : ""}`}>
           <Stat label="कुल पंजीकरण" value={total} />
           <Stat label="आज के पंजीकरण" value={today} />
         </div>
