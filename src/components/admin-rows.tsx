@@ -1,8 +1,11 @@
+import { useState } from "react";
 import { STATUSES, statusLabel } from "@/lib/camp";
 import type { RegistrationRow } from "@/lib/registrations";
+import { downloadRegistrationPdf, slipDetailsFromRow } from "@/lib/registration-pdf";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { NativeSelect } from "@/components/ui/input";
-import { LoaderCircle, Users } from "lucide-react";
+import { Download, LoaderCircle, Users } from "lucide-react";
 
 function formatWhen(iso: string): string {
   const date = new Date(iso);
@@ -53,6 +56,18 @@ export function AdminRegistrationList({
   filteredCount: number;
   onStatus: (id: number, next: string) => void;
 }) {
+  const [downloadingId, setDownloadingId] = useState<number | null>(null);
+
+  async function onDownloadSlip(row: RegistrationRow) {
+    if (downloadingId !== null) return;
+    setDownloadingId(row.id);
+    try {
+      await downloadRegistrationPdf(row.registrationNumber, slipDetailsFromRow(row));
+    } finally {
+      setDownloadingId(null);
+    }
+  }
+
   return (
     <div className="mt-5">
       <p className="mb-2 text-sm text-muted">
@@ -75,11 +90,27 @@ export function AdminRegistrationList({
           {rows.map((row) => (
             <li key={row.id} className="rounded-xl bg-paper p-4 shadow-[var(--shadow-card)]">
               <div className="flex flex-wrap items-start justify-between gap-2">
-                <div>
-                  <p className="font-display text-lg text-navy">{row.name}</p>
-                  <p className="tabular-nums text-sm font-semibold text-maroon">
-                    {row.registrationNumber}
-                  </p>
+                <div className="flex min-w-0 flex-1 items-start gap-2">
+                  <Button
+                    variant="navy"
+                    size="sm"
+                    className="shrink-0"
+                    disabled={downloadingId === row.id}
+                    onClick={() => void onDownloadSlip(row)}
+                  >
+                    {downloadingId === row.id ? (
+                      <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+                    ) : (
+                      <Download className="size-4" aria-hidden="true" />
+                    )}
+                    स्लिप डाउनलोड
+                  </Button>
+                  <div className="min-w-0">
+                    <p className="font-display text-lg text-navy">{row.name}</p>
+                    <p className="tabular-nums text-sm font-semibold text-maroon">
+                      {row.registrationNumber}
+                    </p>
+                  </div>
                 </div>
                 <NativeSelect
                   className="min-h-10 w-auto min-w-44"
