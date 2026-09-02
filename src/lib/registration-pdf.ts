@@ -1,8 +1,15 @@
-import { CAMP } from "@/lib/camp";
+import { CAMP, PHOTOS } from "@/lib/camp";
 
 const PAGE_W = 595;
 const PAGE_H = 842;
 const enc = new TextEncoder();
+
+type SlipPhoto = {
+  img: HTMLImageElement | null;
+  name: string;
+  title: string;
+  cropY: number;
+};
 
 function concat(parts: Uint8Array[]): Uint8Array {
   const total = parts.reduce((n, p) => n + p.length, 0);
@@ -57,94 +64,251 @@ function wrapText(
   return lines.length > 0 ? lines : [text];
 }
 
+function loadImage(src: string): Promise<HTMLImageElement | null> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+    img.src = src;
+  });
+}
+
+function fillRoundRect(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number,
+) {
+  const radius = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.arcTo(x + w, y, x + w, y + h, radius);
+  ctx.arcTo(x + w, y + h, x, y + h, radius);
+  ctx.arcTo(x, y + h, x, y, radius);
+  ctx.arcTo(x, y, x + w, y, radius);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function drawCoverCircle(
+  ctx: CanvasRenderingContext2D,
+  img: HTMLImageElement | null,
+  cx: number,
+  cy: number,
+  radius: number,
+  cropY: number,
+) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+  ctx.closePath();
+  ctx.clip();
+  ctx.fillStyle = "#fff6ea";
+  ctx.fillRect(cx - radius, cy - radius, radius * 2, radius * 2);
+  if (img) {
+    const size = radius * 2;
+    const scale = Math.max(size / img.width, size / img.height);
+    const dw = img.width * scale;
+    const dh = img.height * scale;
+    const dx = cx - dw / 2;
+    const extra = dh - size;
+    const dy = cy - radius - extra * cropY;
+    ctx.drawImage(img, dx, dy, dw, dh);
+  }
+  ctx.restore();
+
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius + 3, 0, Math.PI * 2);
+  ctx.strokeStyle = "#fff6ea";
+  ctx.lineWidth = 6;
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius + 7, 0, Math.PI * 2);
+  ctx.strokeStyle = "#c4a35a";
+  ctx.lineWidth = 4;
+  ctx.stroke();
+}
+
+function drawNameCaption(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  maxWidth: number,
+) {
+  ctx.font = '600 18px "Noto Sans Devanagari", "Noto Sans", sans-serif';
+  const lines = wrapText(ctx, text, maxWidth - 20);
+  const lineH = 24;
+  const padX = 12;
+  const padY = 6;
+  const boxH = padY * 2 + lines.length * lineH;
+  const boxW = Math.min(
+    maxWidth,
+    Math.max(...lines.map((line) => ctx.measureText(line).width)) + padX * 2,
+  );
+  const boxX = x - boxW / 2;
+  ctx.fillStyle = "#7a1f1a";
+  fillRoundRect(ctx, boxX, y, boxW, boxH, boxH / 2);
+  ctx.fillStyle = "#fffdf8";
+  ctx.textAlign = "center";
+  lines.forEach((line, i) => {
+    ctx.fillText(line, x, y + padY + 17 + i * lineH);
+  });
+  return boxH;
+}
+
 function drawSlip(
   ctx: CanvasRenderingContext2D,
   width: number,
   height: number,
   registrationNumber: string,
   details: Record<string, string>,
+  portraits: SlipPhoto[],
+  organizer: SlipPhoto,
 ) {
   ctx.fillStyle = "#fff6ea";
   ctx.fillRect(0, 0, width, height);
 
   ctx.fillStyle = "#7a1f1a";
-  ctx.fillRect(0, 0, width, 118);
+  ctx.fillRect(0, 0, width, 96);
   ctx.fillStyle = "#c4a35a";
-  ctx.fillRect(0, 118, width, 8);
+  ctx.fillRect(0, 96, width, 7);
 
   ctx.fillStyle = "#fffdf8";
   ctx.textAlign = "center";
-  ctx.font = '600 28px "Noto Sans Devanagari", "Noto Sans", sans-serif';
-  ctx.fillText(CAMP.foundation, width / 2, 48);
-  ctx.font = '500 22px "Noto Sans Devanagari", "Noto Sans", sans-serif';
-  ctx.fillText(CAMP.hospital, width / 2, 86);
+  ctx.font = '600 26px "Noto Sans Devanagari", "Noto Sans", sans-serif';
+  ctx.fillText(CAMP.foundation, width / 2, 40);
+  ctx.font = '500 20px "Noto Sans Devanagari", "Noto Sans", sans-serif';
+  ctx.fillText(CAMP.hospital, width / 2, 72);
 
-  let y = 180;
+  let y = 140;
+  ctx.fillStyle = "#7a1f1a";
+  ctx.font = '700 28px "Tiro Devanagari Hindi", "Noto Serif Devanagari", serif';
+  ctx.fillText(CAMP.inspiration, width / 2, y);
+
+  const radius = 78;
+  const portraitY = y + 28 + radius;
+  const gap = width / 4;
+  portraits.forEach((person, i) => {
+    const cx = gap * (i + 1);
+    drawCoverCircle(ctx, person.img, cx, portraitY, radius, person.cropY);
+    const captionTop = portraitY + radius + 16;
+    const captionH = drawNameCaption(ctx, person.name, cx, captionTop, gap - 16);
+    ctx.fillStyle = "#1b2a4a";
+    ctx.font = '500 16px "Noto Sans Devanagari", "Noto Sans", sans-serif';
+    ctx.textAlign = "center";
+    let titleY = captionTop + captionH + 22;
+    for (const line of wrapText(ctx, person.title, gap - 12)) {
+      ctx.fillText(line, cx, titleY);
+      titleY += 20;
+    }
+  });
+
+  y = portraitY + radius + 92;
+
+  ctx.strokeStyle = "#c4a35a";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(width * 0.18, y);
+  ctx.lineTo(width * 0.82, y);
+  ctx.stroke();
+  ctx.fillStyle = "#c4a35a";
+  ctx.save();
+  ctx.translate(width / 2, y);
+  ctx.rotate(Math.PI / 4);
+  ctx.fillRect(-4, -4, 8, 8);
+  ctx.restore();
+
+  y += 28;
+  const orgR = 52;
+  const orgX = 150;
+  const orgCy = y + orgR;
+  drawCoverCircle(ctx, organizer.img, orgX, orgCy, orgR, organizer.cropY);
+  ctx.textAlign = "left";
+  const textX = orgX + orgR + 28;
+  ctx.fillStyle = "#c4a35a";
+  ctx.font = '600 18px "Noto Sans Devanagari", "Noto Sans", sans-serif';
+  ctx.fillText(CAMP.organizerRole, textX, orgCy - 22);
+  ctx.fillStyle = "#7a1f1a";
+  ctx.font = '700 26px "Tiro Devanagari Hindi", "Noto Serif Devanagari", serif';
+  ctx.fillText(CAMP.organizer, textX, orgCy + 10);
   ctx.fillStyle = "#1b2a4a";
-  ctx.font = '700 36px "Tiro Devanagari Hindi", "Noto Serif Devanagari", serif';
+  ctx.font = '400 16px "Noto Sans Devanagari", "Noto Sans", sans-serif';
+  let honorY = orgCy + 34;
+  for (const line of wrapText(ctx, CAMP.organizerHonor, width - textX - 70)) {
+    ctx.fillText(line, textX, honorY);
+    honorY += 20;
+  }
+
+  y = Math.max(orgCy + orgR + 28, honorY + 16);
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#1b2a4a";
+  ctx.font = '700 30px "Tiro Devanagari Hindi", "Noto Serif Devanagari", serif';
   for (const line of wrapText(ctx, CAMP.formTitle, width - 120)) {
     ctx.fillText(line, width / 2, y);
-    y += 46;
+    y += 38;
   }
 
-  y += 18;
+  y += 8;
   ctx.fillStyle = "#7a1f1a";
-  ctx.font = '700 40px "Noto Sans Devanagari", "Noto Sans", sans-serif';
+  ctx.font = '700 34px "Noto Sans Devanagari", "Noto Sans", sans-serif';
   ctx.fillText(`पंजीकरण क्रमांक: ${registrationNumber}`, width / 2, y);
-  y += 48;
+  y += 40;
   ctx.fillStyle = "#c45308";
-  ctx.font = '700 26px "Noto Sans Devanagari", "Noto Sans", sans-serif';
+  ctx.font = '700 22px "Noto Sans Devanagari", "Noto Sans", sans-serif';
   for (const line of wrapText(ctx, CAMP.dateLine, width - 120)) {
     ctx.fillText(line, width / 2, y);
-    y += 36;
-  }
-
-  y += 24;
-  const boxX = 70;
-  const boxW = width - 140;
-  ctx.textAlign = "left";
-  ctx.font = '500 24px "Noto Sans Devanagari", "Noto Sans", sans-serif';
-  for (const [label, value] of Object.entries(details)) {
-    const valueX = boxX + 280;
-    const valueMax = boxW - 300;
-    const valueLines = wrapText(ctx, value, valueMax);
-    const rowH = Math.max(52, 20 + valueLines.length * 30);
-    ctx.fillStyle = "#fffdf8";
-    ctx.fillRect(boxX, y - 30, boxW, rowH);
-    ctx.strokeStyle = "#ead9c8";
-    ctx.lineWidth = 1;
-    ctx.strokeRect(boxX, y - 30, boxW, rowH);
-    ctx.fillStyle = "#7a1f1a";
-    ctx.fillText(label, boxX + 16, y);
-    ctx.fillStyle = "#1a1510";
-    valueLines.forEach((line, i) => {
-      ctx.fillText(line, valueX, y + i * 30);
-    });
-    y += rowH + 6;
-  }
-
-  y += 20;
-  ctx.textAlign = "center";
-  ctx.fillStyle = "#1f7a4d";
-  ctx.font = '700 24px "Noto Sans Devanagari", "Noto Sans", sans-serif';
-  for (const line of wrapText(ctx, CAMP.operationNote, width - 140)) {
-    ctx.fillText(line, width / 2, y);
-    y += 34;
+    y += 30;
   }
 
   y += 16;
-  ctx.fillStyle = "#6b5e52";
-  ctx.font = '400 20px "Noto Sans Devanagari", "Noto Sans", sans-serif';
-  for (const line of wrapText(ctx, CAMP.address, width - 140)) {
+  const boxX = 70;
+  const boxW = width - 140;
+  ctx.textAlign = "left";
+  ctx.font = '500 20px "Noto Sans Devanagari", "Noto Sans", sans-serif';
+  for (const [label, value] of Object.entries(details)) {
+    const valueX = boxX + 260;
+    const valueMax = boxW - 280;
+    const valueLines = wrapText(ctx, value, valueMax);
+    const rowH = Math.max(44, 16 + valueLines.length * 24);
+    ctx.fillStyle = "#fffdf8";
+    ctx.fillRect(boxX, y - 26, boxW, rowH);
+    ctx.strokeStyle = "#ead9c8";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(boxX, y - 26, boxW, rowH);
+    ctx.fillStyle = "#7a1f1a";
+    ctx.fillText(label, boxX + 14, y);
+    ctx.fillStyle = "#1a1510";
+    valueLines.forEach((line, i) => {
+      ctx.fillText(line, valueX, y + i * 24);
+    });
+    y += rowH + 4;
+  }
+
+  y += 16;
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#1f7a4d";
+  ctx.font = '700 20px "Noto Sans Devanagari", "Noto Sans", sans-serif';
+  for (const line of wrapText(ctx, CAMP.operationNote, width - 140)) {
     ctx.fillText(line, width / 2, y);
     y += 28;
   }
 
+  y += 10;
+  ctx.fillStyle = "#6b5e52";
+  ctx.font = '400 17px "Noto Sans Devanagari", "Noto Sans", sans-serif';
+  for (const line of wrapText(ctx, CAMP.address, width - 140)) {
+    ctx.fillText(line, width / 2, y);
+    y += 24;
+  }
+
   ctx.fillStyle = "#7a1f1a";
-  ctx.fillRect(0, height - 70, width, 70);
+  ctx.fillRect(0, height - 62, width, 62);
   ctx.fillStyle = "#fffdf8";
-  ctx.font = '600 22px "Noto Sans Devanagari", "Noto Sans", sans-serif';
-  ctx.fillText(CAMP.freeNote, width / 2, height - 28);
+  ctx.font = '600 20px "Noto Sans Devanagari", "Noto Sans", sans-serif';
+  ctx.fillText(CAMP.freeNote, width / 2, height - 24);
 }
 
 function jpegToPdf(jpeg: Uint8Array, imgW: number, imgH: number): Uint8Array {
@@ -203,14 +367,54 @@ export async function downloadRegistrationPdf(
     await document.fonts.ready.catch(() => undefined);
   }
 
+  const [jagatguru, modi, yogi, bhola] = await Promise.all([
+    loadImage(PHOTOS.jagatguru.src),
+    loadImage(PHOTOS.modi.src),
+    loadImage(PHOTOS.yogi.src),
+    loadImage(PHOTOS.bhola.src),
+  ]);
+
   const width = 1240;
-  const height = 1754;
+  const height = 1850;
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("pdf");
-  drawSlip(ctx, width, height, registrationNumber, details);
+
+  drawSlip(
+    ctx,
+    width,
+    height,
+    registrationNumber,
+    details,
+    [
+      {
+        img: jagatguru,
+        name: PHOTOS.jagatguru.name,
+        title: PHOTOS.jagatguru.title,
+        cropY: 0.08,
+      },
+      {
+        img: modi,
+        name: PHOTOS.modi.name,
+        title: PHOTOS.modi.title,
+        cropY: 0.22,
+      },
+      {
+        img: yogi,
+        name: PHOTOS.yogi.name,
+        title: PHOTOS.yogi.title,
+        cropY: 0.18,
+      },
+    ],
+    {
+      img: bhola,
+      name: PHOTOS.bhola.name,
+      title: PHOTOS.bhola.title,
+      cropY: 0.18,
+    },
+  );
 
   const jpeg = await new Promise<Uint8Array>((resolve, reject) => {
     canvas.toBlob(
@@ -225,7 +429,7 @@ export async function downloadRegistrationPdf(
           .catch(reject);
       },
       "image/jpeg",
-      0.86,
+      0.88,
     );
   });
 

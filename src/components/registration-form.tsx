@@ -67,13 +67,32 @@ export function RegistrationForm() {
     if (!success) return;
     const node = successRef.current;
     if (!node) return;
+
     const pin = () => {
-      node.scrollIntoView({ behavior: "auto", block: "start" });
       node.focus({ preventScroll: true });
+      node.scrollIntoView({ behavior: "auto", block: "start" });
+      const y = node.getBoundingClientRect().top + window.scrollY - 8;
+      window.scrollTo(0, Math.max(0, y));
+      const shell = document.querySelector(".poster-shell");
+      if (shell instanceof HTMLElement) {
+        const top =
+          node.getBoundingClientRect().top -
+          shell.getBoundingClientRect().top +
+          shell.scrollTop -
+          8;
+        shell.scrollTo(0, Math.max(0, top));
+      }
     };
+
     pin();
     const frame = requestAnimationFrame(pin);
-    return () => cancelAnimationFrame(frame);
+    const later = window.setTimeout(pin, 80);
+    const settle = window.setTimeout(pin, 240);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.clearTimeout(later);
+      window.clearTimeout(settle);
+    };
   }, [success]);
 
   function set<K extends keyof typeof EMPTY>(key: K, value: (typeof EMPTY)[K]) {
