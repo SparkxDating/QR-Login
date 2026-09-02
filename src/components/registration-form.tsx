@@ -1,4 +1,4 @@
-import { useRef, useState, type FormEvent, type ReactNode } from "react";
+import { useLayoutEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { BLOCKS, CAMP } from "@/lib/camp";
 import { registrationInputSchema } from "@/lib/registrations";
 import { submitRegistration } from "@/lib/registrations.functions";
@@ -61,6 +61,20 @@ export function RegistrationForm() {
     details: Record<string, string>;
   } | null>(null);
   const lock = useRef(false);
+  const successRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    if (!success) return;
+    const node = successRef.current;
+    if (!node) return;
+    const pin = () => {
+      node.scrollIntoView({ behavior: "auto", block: "start" });
+      node.focus({ preventScroll: true });
+    };
+    pin();
+    const frame = requestAnimationFrame(pin);
+    return () => cancelAnimationFrame(frame);
+  }, [success]);
 
   function set<K extends keyof typeof EMPTY>(key: K, value: (typeof EMPTY)[K]) {
     setValues((v) => ({ ...v, [key]: value }));
@@ -122,11 +136,18 @@ export function RegistrationForm() {
 
   if (success) {
     return (
-      <SuccessView
-        registrationNumber={success.number}
-        details={success.details}
-        onReset={() => setSuccess(null)}
-      />
+      <div
+        ref={successRef}
+        id="registration-success"
+        tabIndex={-1}
+        className="outline-none"
+      >
+        <SuccessView
+          registrationNumber={success.number}
+          details={success.details}
+          onReset={() => setSuccess(null)}
+        />
+      </div>
     );
   }
 
