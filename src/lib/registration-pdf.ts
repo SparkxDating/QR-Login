@@ -106,3 +106,150 @@ function loadImage(src: string): Promise<HTMLImageElement | null> {
     img.src = src;
   });
 }
+
+function fillRoundRect(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number,
+) {
+  const radius = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.arcTo(x + w, y, x + w, y + h, radius);
+  ctx.arcTo(x + w, y + h, x, y + h, radius);
+  ctx.arcTo(x, y + h, x, y, radius);
+  ctx.arcTo(x, y, x + w, y, radius);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function strokeRoundRect(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number,
+) {
+  const radius = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.arcTo(x + w, y, x + w, y + h, radius);
+  ctx.arcTo(x + w, y + h, x, y + h, radius);
+  ctx.arcTo(x, y + h, x, y, radius);
+  ctx.arcTo(x, y, x + w, y, radius);
+  ctx.closePath();
+  ctx.stroke();
+}
+
+function drawCoverCircle(
+  ctx: CanvasRenderingContext2D,
+  img: HTMLImageElement | null,
+  cx: number,
+  cy: number,
+  radius: number,
+  cropY: number,
+) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+  ctx.closePath();
+  ctx.clip();
+  ctx.fillStyle = "#fff6ea";
+  ctx.fillRect(cx - radius, cy - radius, radius * 2, radius * 2);
+  if (img) {
+    const size = radius * 2;
+    const scale = Math.max(size / img.width, size / img.height);
+    const dw = img.width * scale;
+    const dh = img.height * scale;
+    const extra = dh - size;
+    ctx.drawImage(img, cx - dw / 2, cy - radius - extra * cropY, dw, dh);
+  }
+  ctx.restore();
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius + 2, 0, Math.PI * 2);
+  ctx.strokeStyle = "#fff6ea";
+  ctx.lineWidth = 5;
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius + 6, 0, Math.PI * 2);
+  ctx.strokeStyle = "#c4a35a";
+  ctx.lineWidth = 3.5;
+  ctx.stroke();
+}
+
+function drawQr(
+  ctx: CanvasRenderingContext2D,
+  value: string,
+  x: number,
+  y: number,
+  size: number,
+) {
+  const qr = encode(value, { ecc: "M", border: 2 });
+  const pad = Math.round(size * 0.1);
+  const inner = size - pad * 2;
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(x, y, size, size);
+  const cell = inner / qr.size;
+  ctx.fillStyle = "#1b2a4a";
+  for (let row = 0; row < qr.size; row += 1) {
+    for (let col = 0; col < qr.size; col += 1) {
+      if (qr.data[row]?.[col]) {
+        ctx.fillRect(x + pad + col * cell, y + pad + row * cell, cell + 0.4, cell + 0.4);
+      }
+    }
+  }
+}
+
+export function isIosDevice(): boolean {
+  if (typeof navigator === "undefined") return false;
+  const ua = navigator.userAgent || "";
+  if (/iPad|iPhone|iPod/i.test(ua)) return true;
+  return navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
+}
+
+function closePreviewWindow(preview: Window | null | undefined) {
+  if (!preview || preview.closed) return;
+  try {
+    preview.close();
+  } catch {
+    // Ignore a blocked close.
+  }
+}
+
+export function openPdfPreviewWindow(): Window | null {
+  if (typeof window === "undefined" || !isIosDevice()) return null;
+  const preview = window.open("", "_blank");
+  if (!preview) return null;
+  try {
+    preview.document.open();
+    preview.document.write("<!DOCTYPE html><html lang=\"hi\"><head><meta charset=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><title>PDF</title></head><body><p>PDF बन रहा है...</p></body></html>");
+    preview.document.close();
+  } catch {
+    // The window handle is still usable for location.replace after generation.
+  }
+  return preview;
+}
+
+function openPdfInPreview(preview: Window, url: string): boolean {
+  try {
+    preview.location.replace(url);
+    return !preview.closed;
+  } catch {
+    return false;
+  }
+}
+
+function triggerAnchorDownload(url: string, filename: string) {
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.rel = "noopener";
+  a.style.display = "none";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
