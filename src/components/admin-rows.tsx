@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { STATUSES, statusLabel } from "@/lib/camp";
 import type { RegistrationRow } from "@/lib/registrations";
-import { saveRegistrationPdf, slipDetailsFromRow } from "@/lib/registration-pdf";
+import { saveRegistrationPdf, openPdfPreviewWindow, slipDetailsFromRow } from "@/lib/registration-pdf";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { NativeSelect } from "@/components/ui/input";
@@ -76,12 +76,22 @@ export function AdminRegistrationList({
       URL.revokeObjectURL(openPdf.url);
       setOpenPdf(null);
     }
+    const preview = openPdfPreviewWindow();
     try {
-      const result = await saveRegistrationPdf(row.registrationNumber, slipDetailsFromRow(row));
+      const result = await saveRegistrationPdf(
+        row.registrationNumber,
+        slipDetailsFromRow(row),
+        preview,
+      );
       if (result.needsOpenFallback && result.openUrl) {
         setOpenPdf({ id: row.id, url: result.openUrl, filename: result.filename });
       }
     } catch {
+      try {
+        preview?.close();
+      } catch {
+        // Ignore a blocked close.
+      }
       setDownloadError({
         id: row.id,
         message: "स्लिप PDF नहीं बन सका। कृपया पुनः प्रयास करें।",
