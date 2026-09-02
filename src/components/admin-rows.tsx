@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { STATUSES, statusLabel } from "@/lib/camp";
 import type { RegistrationRow } from "@/lib/registrations";
-import { downloadRegistrationPdf, slipDetailsFromRow } from "@/lib/registration-pdf";
+import { saveRegistrationPdf, slipDetailsFromRow } from "@/lib/registration-pdf";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { NativeSelect } from "@/components/ui/input";
@@ -57,12 +57,35 @@ export function AdminRegistrationList({
   onStatus: (id: number, next: string) => void;
 }) {
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
+  const [downloadError, setDownloadError] = useState<{ id: number; message: string } | null>(null);
+  const [openPdf, setOpenPdf] = useState<{ id: number; url: string; filename: string } | null>(
+    null,
+  );
+
+  useEffect(() => {
+    return () => {
+      if (openPdf) URL.revokeObjectURL(openPdf.url);
+    };
+  }, [openPdf]);
 
   async function onDownloadSlip(row: RegistrationRow) {
     if (downloadingId !== null) return;
     setDownloadingId(row.id);
+    setDownloadError(null);
+    if (openPdf) {
+      URL.revokeObjectURL(openPdf.url);
+      setOpenPdf(null);
+    }
     try {
-      await downloadRegistrationPdf(row.registrationNumber, slipDetailsFromRow(row));
+      const result = await saveRegistrationPdf(row.registrationNumber, slipDetailsFromRow(row));
+      if (result.needsOpenFallback && result.openUrl) {
+        setOpenPdf({ id: row.id, url: result.openUrl, filename: result.filename });
+      }
+    } catch {
+      setDownloadError({
+        id: row.id,
+        message: "स्लिप PDF नहीं बन सका। कृपया पुनः प्रयास करें।",
+      });
     } finally {
       setDownloadingId(null);
     }
@@ -90,12 +113,12 @@ export function AdminRegistrationList({
           {rows.map((row) => (
             <li key={row.id} className="rounded-xl bg-paper p-4 shadow-[var(--shadow-card)]">
               <div className="flex flex-wrap items-start justify-between gap-2">
-                <div className="flex min-w-0 flex-1 items-start gap-2">
+                <div className="flex min-w-0 flex-1 flex-wrap items-start gap-2">
                   <Button
                     variant="navy"
                     size="sm"
                     className="shrink-0"
-                    disabled={downloadingId === row.id}
+                    disabled={downloadingId !== null}
                     onClick={() => void onDownloadSlip(row)}
                   >
                     {downloadingId === row.id ? (
@@ -103,8 +126,18 @@ export function AdminRegistrationList({
                     ) : (
                       <Download className="size-4" aria-hidden="true" />
                     )}
-                    स्लिप डाउनलोड
+                    {downloadingId === row.id ? "PDF बन रहा है..." : "स्लिप डाउनलोड"}
                   </Button>
+                  {openPdf?.id === row.id ? (
+                    <a
+                      href={openPdf.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-sm bg-paper px-3 text-sm font-semibold text-navy ring-1 ring-line"
+                    >
+                      PDF खोलें / सेव करें
+                    </a>
+                  ) : null}
                   <div className="min-w-0">
                     <p className="font-display text-lg text-navy">{row.name}</p>
                     <p className="tabular-nums text-sm font-semibold text-maroon">
@@ -124,6 +157,16 @@ export function AdminRegistrationList({
                   ))}
                 </NativeSelect>
               </div>
+              {downloadError?.id === row.id ? (
+                <p className="mt-2 rounded-md bg-danger/10 px-3 py-2 text-sm text-danger" role="alert">
+                  {downloadError.message}
+                </p>
+              ) : null}
+              {openPdf?.id === row.id ? (
+                <p className="mt-2 text-sm text-muted">
+                  मोबाइल पर PDF खोलें, फिर Share से Files में सेव करें।
+                </p>
+              ) : null}
               <dl className="mt-3 grid grid-cols-1 gap-x-4 gap-y-1 text-sm sm:grid-cols-2">
                 <Item k="पिता/पति" v={row.fatherOrHusbandName} />
                 <Item k="मोबाइल" v={row.mobile} />

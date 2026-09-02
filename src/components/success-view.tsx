@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CAMP } from "@/lib/camp";
-import { downloadRegistrationPdf } from "@/lib/registration-pdf";
+import { saveRegistrationPdf } from "@/lib/registration-pdf";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { CheckCircle2, Download, RotateCcw } from "lucide-react";
@@ -16,13 +16,27 @@ export function SuccessView({
 }) {
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState("");
+  const [openPdf, setOpenPdf] = useState<{ url: string; filename: string } | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (openPdf) URL.revokeObjectURL(openPdf.url);
+    };
+  }, [openPdf]);
 
   async function onDownload() {
     if (downloading) return;
     setDownloadError("");
     setDownloading(true);
+    if (openPdf) {
+      URL.revokeObjectURL(openPdf.url);
+      setOpenPdf(null);
+    }
     try {
-      await downloadRegistrationPdf(registrationNumber, details);
+      const result = await saveRegistrationPdf(registrationNumber, details);
+      if (result.needsOpenFallback && result.openUrl) {
+        setOpenPdf({ url: result.openUrl, filename: result.filename });
+      }
     } catch {
       setDownloadError("PDF डाउनलोड नहीं हो सका। कृपया पुनः प्रयास करें।");
     } finally {
@@ -53,6 +67,21 @@ export function SuccessView({
           नया पंजीकरण
         </Button>
       </div>
+      {openPdf ? (
+        <div className="mt-4">
+          <a
+            href={openPdf.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-md bg-paper px-5 text-base font-semibold text-navy ring-1 ring-line"
+          >
+            PDF खोलें / सेव करें
+          </a>
+          <p className="mt-2 text-sm text-muted">
+            मोबाइल पर PDF खोलें, फिर Share से Files में सेव करें।
+          </p>
+        </div>
+      ) : null}
       {downloadError ? (
         <p className="mt-4 rounded-md bg-danger/10 px-3 py-2 text-sm text-danger" role="alert">
           {downloadError}

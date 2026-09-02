@@ -3,6 +3,8 @@ import { CAMP, DOCUMENTS, PHOTOS } from "@/lib/camp";
 
 const PAGE_W = 595;
 const PAGE_H = 842;
+const CANVAS_W = 1240;
+const CANVAS_H = 1754;
 const enc = new TextEncoder();
 
 type SlipPhoto = {
@@ -35,6 +37,13 @@ export function slipDetailsFromRow(row: {
     मोबाइल: row.mobile,
   };
 }
+
+export type SlipSaveResult = {
+  filename: string;
+  needsOpenFallback: boolean;
+  openUrl: string | null;
+  revoke: () => void;
+};
 
 function concat(parts: Uint8Array[]): Uint8Array {
   const total = parts.reduce((n, p) => n + p.length, 0);
@@ -180,7 +189,7 @@ function drawQr(
   size: number,
 ) {
   const qr = encode(value, { ecc: "M", border: 2 });
-  const pad = Math.round(size * 0.12);
+  const pad = Math.round(size * 0.1);
   const inner = size - pad * 2;
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(x, y, size, size);
@@ -195,6 +204,30 @@ function drawQr(
   }
 }
 
+function isIosDevice(): boolean {
+  if (typeof navigator === "undefined") return false;
+  const ua = navigator.userAgent || "";
+  if (/iPad|iPhone|iPod/i.test(ua)) return true;
+  return navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
+}
+
+async function trySharePdf(file: File): Promise<boolean> {
+  const nav = navigator as Navigator & {
+    canShare?: (data: ShareData) => boolean;
+    share?: (data: ShareData) => Promise<void>;
+  };
+  if (typeof nav.share !== "function") return false;
+  try {
+    if (typeof nav.canShare === "function" && !nav.canShare({ files: [file] })) {
+      return false;
+    }
+    await nav.share({ files: [file], title: file.name });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function drawSlip(
   ctx: CanvasRenderingContext2D,
   width: number,
@@ -205,64 +238,189 @@ function drawSlip(
   organizer: SlipPhoto,
   logo: HTMLImageElement | null,
 ) {
-  const margin = 40;
-  const footerH = 52;
+  const margin = 42;
+  const headerH = 90;
+  const goldH = 6;
+  const footerH = 56;
+  const innerW = width - margin * 2;
+  const font = (weight: number, size: number, serif = false) =>
+    `${weight} ${size}px ${serif ? '"Tiro Devanagari Hindi", "Noto Serif Devanagari", serif' : '"Noto Sans Devanagari", "Noto Sans", sans-serif'}`;
+
   ctx.fillStyle = "#fff6ea";
   ctx.fillRect(0, 0, width, height);
+  ctx.textBaseline = "alphabetic";
 
   ctx.fillStyle = "#7a1f1a";
-  ctx.fillRect(0, 0, width, 74);
+  ctx.fillRect(0, 0, width, headerH);
   ctx.fillStyle = "#c4a35a";
-  ctx.fillRect(0, 74, width, 5);
+  ctx.fillRect(0, headerH, width, goldH);
 
-  if (logo) ctx.drawImage(logo, margin, 11, 50, 50);
+  const logoSize = 62;
+  if (logo) ctx.drawImage(logo, margin, (headerH - logoSize) / 2, logoSize, logoSize);
   ctx.fillStyle = "#fffdf8";
   ctx.textAlign = "center";
-  ctx.font = '600 23px "Noto Sans Devanagari", "Noto Sans", sans-serif';
-  ctx.fillText(CAMP.foundation, width / 2, 32);
-  ctx.font = '500 17px "Noto Sans Devanagari", "Noto Sans", sans-serif';
-  ctx.fillText(CAMP.hospital, width / 2, 56);
+  ctx.font = font(600, 26);
+  ctx.fillText(CAMP.foundation, width / 2, 38);
+  ctx.font = font(500, 18);
+  ctx.fillText(CAMP.hospital, width / 2, 68);
 
-  ctx.fillStyle = "#7a1f1a";
-  ctx.font = '700 22px "Tiro Devanagari Hindi", "Noto Serif Devanagari", serif';
-  ctx.fillText(CAMP.inspiration, width / 2, 104);
+  const bodyTop = headerH + goldH;
+  const bodyBottom = height - footerH;
+  ctx.strokeStyle = "#c4a35a";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(18, bodyTop + 8, width - 36, bodyBottom - bodyTop - 16);
+  ctx.strokeStyle = "#7a1f1a";
+  ctx.lineWidth = 1;
+  ctx.strokeRect(22, bodyTop + 12, width - 44, bodyBottom - bodyTop - 24);
 
   const gap = 12;
-  const cardW = (width - margin * 2 - gap * 2) / 3;
-  const cardX0 = margin;
-  const cardY = 114;
-  const radius = 58;
-  const nameFont = '700 17px "Noto Sans Devanagari", "Noto Sans", sans-serif';
-  const titleFont = '500 14px "Noto Sans Devanagari", "Noto Sans", sans-serif';
-  const nameLine = 21;
-  const titleLine = 18;
+  const cardGap = 16;
+  const cardW = (innerW - cardGap * 2) / 3;
+  const radius = 70;
+  const photoTop = 12;
+  const captionGap = 20;
+  const nameFont = font(700, 21);
+  const titleFont = font(500, 16);
+  const nameLine = 26;
+  const titleLine = 20;
   const measures = portraits.map((person) => {
     ctx.font = nameFont;
-    const nameLines = wrapText(ctx, person.name, cardW - 18);
+    const nameLines = wrapText(ctx, person.name, cardW - 24);
     ctx.font = titleFont;
-    const titleLines = wrapText(ctx, person.title, cardW - 18);
+    const titleLines = wrapText(ctx, person.title, cardW - 24);
     const h =
-      10 + radius * 2 + 10 + nameLines.length * nameLine + 4 + titleLines.length * titleLine + 12;
+      photoTop +
+      radius * 2 +
+      captionGap +
+      nameLines.length * nameLine +
+      4 +
+      titleLines.length * titleLine +
+      12;
     return { nameLines, titleLines, h };
   });
   const cardH = Math.max(...measures.map((m) => m.h));
 
+  ctx.font = font(400, 16);
+  const orgR = 50;
+  const orgTextX = margin + 18 + orgR * 2 + 18;
+  const orgTextW = width - margin - 16 - orgTextX;
+  const honorLines = wrapText(ctx, CAMP.organizerHonor, orgTextW);
+  const orgH = Math.max(orgR * 2 + 28, 22 + 28 + honorLines.length * 20 + 22);
+
+  const qrSize = 186;
+  const qrBox = 214;
+  const qrLabelH = 28;
+  const qrBlockH = qrBox + qrLabelH;
+  const leftW = width - margin - qrBox - 16 - margin;
+
+  ctx.font = font(700, 22, true);
+  const formTitleLines = wrapText(ctx, CAMP.formTitle, leftW);
+  ctx.font = font(700, 16);
+  const dateLines = wrapText(ctx, CAMP.dateLine, leftW);
+  const numH = 84;
+  const identH = Math.max(
+    qrBlockH,
+    8 + formTitleLines.length * 28 + 10 + numH + 12 + dateLines.length * 22,
+  );
+
+  const boxW = innerW;
+  const labelW = 250;
+  const valueMax = boxW - labelW - 20;
+  const detailRows = Object.entries(details).map(([label, value]) => {
+    ctx.font = font(700, 20);
+    const valueLines = wrapText(ctx, value, valueMax);
+    const rowH = Math.max(40, 14 + valueLines.length * 24);
+    return { label, value, valueLines, rowH };
+  });
+  const detailsH = detailRows.reduce((n, row) => n + row.rowH, 0);
+
+  ctx.font = font(700, 18);
+  const opLines = wrapText(ctx, CAMP.operationNote, boxW - 48);
+  ctx.font = font(700, 16);
+  const freeLines = wrapText(ctx, CAMP.freeNote, boxW - 40);
+  ctx.font = font(600, 16);
+  const docHeadLines = wrapText(ctx, CAMP.documentsHeading, boxW - 40);
+  ctx.font = font(500, 16);
+  const docItemLines = DOCUMENTS.map((doc, i) => wrapText(ctx, `${i + 1}. ${doc}`, boxW - 40));
+  ctx.font = font(600, 15);
+  const hospitalLines = wrapText(ctx, `हॉस्पिटल पता: ${CAMP.hospital}`, boxW - 40);
+  ctx.font = font(400, 15);
+  const addressLines = wrapText(ctx, CAMP.address, boxW - 40);
+
+  const bannerH = Math.max(44, 16 + opLines.length * 22);
+  const instrContentH =
+    14 +
+    bannerH +
+    10 +
+    freeLines.length * 22 +
+    10 +
+    docHeadLines.length * 20 +
+    6 +
+    docItemLines.reduce((n, lines) => n + lines.length * 22, 0) +
+    10 +
+    hospitalLines.length * 20 +
+    addressLines.length * 20 +
+    14;
+
+  const headingH = 36;
+  const usedMin =
+    bodyTop + 16 + headingH + cardH + orgH + identH + detailsH + instrContentH + gap * 4 + 10;
+  let leftover = Math.max(0, bodyBottom - 10 - usedMin);
+  const gapBoost = Math.min(10, leftover / 4);
+  const sectionGap = gap + gapBoost;
+  leftover -= gapBoost * 4;
+  const rowBoost = Math.min(8, leftover / Math.max(1, detailRows.length));
+  leftover -= rowBoost * detailRows.length;
+  for (const row of detailRows) {
+    row.rowH += rowBoost;
+  }
+  const instrSlack = leftover;
+
+  let y = bodyTop + 16;
+
+  ctx.fillStyle = "#7a1f1a";
+  ctx.textAlign = "center";
+  ctx.font = font(700, 24, true);
+  ctx.fillText(CAMP.inspiration, width / 2, y + 22);
+  ctx.fillStyle = "#c4a35a";
+  ctx.beginPath();
+  ctx.moveTo(width / 2 - 170, y + 8);
+  ctx.lineTo(width / 2 - 92, y + 8);
+  ctx.moveTo(width / 2 + 92, y + 8);
+  ctx.lineTo(width / 2 + 170, y + 8);
+  ctx.lineWidth = 1.5;
+  ctx.strokeStyle = "#c4a35a";
+  ctx.stroke();
+  ctx.save();
+  ctx.translate(width / 2 - 82, y + 8);
+  ctx.rotate(Math.PI / 4);
+  ctx.fillRect(-4, -4, 8, 8);
+  ctx.restore();
+  ctx.save();
+  ctx.translate(width / 2 + 82, y + 8);
+  ctx.rotate(Math.PI / 4);
+  ctx.fillRect(-4, -4, 8, 8);
+  ctx.restore();
+  y += 36;
+
+  const cardY = y;
   portraits.forEach((person, i) => {
     const measure = measures[i];
     if (!measure) return;
-    const x = cardX0 + i * (cardW + gap);
+    const x = margin + i * (cardW + cardGap);
     ctx.fillStyle = "#fffdf8";
-    fillRoundRect(ctx, x, cardY, cardW, cardH, 14);
+    fillRoundRect(ctx, x, cardY, cardW, cardH, 16);
     ctx.strokeStyle = "#c4a35a";
-    ctx.lineWidth = 1.5;
-    strokeRoundRect(ctx, x, cardY, cardW, cardH, 14);
+    ctx.lineWidth = 1.6;
+    strokeRoundRect(ctx, x, cardY, cardW, cardH, 16);
     const cx = x + cardW / 2;
-    const cy = cardY + 10 + radius;
+    const cy = cardY + photoTop + radius;
     drawCoverCircle(ctx, person.img, cx, cy, radius, person.cropY);
     ctx.textAlign = "center";
+    ctx.textBaseline = "top";
     ctx.fillStyle = "#7a1f1a";
     ctx.font = nameFont;
-    let ty = cy + radius + 22;
+    let ty = cardY + photoTop + radius * 2 + captionGap;
     for (const line of measure.nameLines) {
       ctx.fillText(line, cx, ty);
       ty += nameLine;
@@ -274,100 +432,86 @@ function drawSlip(
       ctx.fillText(line, cx, ty);
       ty += titleLine;
     }
+    ctx.textBaseline = "alphabetic";
   });
 
-  let y = cardY + cardH + 12;
-  ctx.font = '400 14px "Noto Sans Devanagari", "Noto Sans", sans-serif';
-  const orgR = 36;
-  const orgCx = margin + 20 + orgR;
-  const orgTextX = orgCx + orgR + 20;
-  const orgTextW = width - margin - 14 - orgTextX;
-  const honorLines = wrapText(ctx, CAMP.organizerHonor, orgTextW);
-  const orgH = Math.max(92, 24 + honorLines.length * 18 + 28);
+  y = cardY + cardH + sectionGap;
   ctx.fillStyle = "#fffdf8";
-  fillRoundRect(ctx, margin, y, width - margin * 2, orgH, 14);
+  fillRoundRect(ctx, margin, y, innerW, orgH, 16);
   ctx.strokeStyle = "#c4a35a";
-  ctx.lineWidth = 1.5;
-  strokeRoundRect(ctx, margin, y, width - margin * 2, orgH, 14);
+  ctx.lineWidth = 1.6;
+  strokeRoundRect(ctx, margin, y, innerW, orgH, 16);
+  const orgCx = margin + 18 + orgR;
   const orgCy = y + orgH / 2;
   drawCoverCircle(ctx, organizer.img, orgCx, orgCy, orgR, organizer.cropY);
   ctx.textAlign = "left";
   ctx.fillStyle = "#c4a35a";
-  ctx.font = '600 15px "Noto Sans Devanagari", "Noto Sans", sans-serif';
-  ctx.fillText(CAMP.organizerRole, orgTextX, orgCy - 20);
+  ctx.font = font(600, 16);
+  ctx.fillText(CAMP.organizerRole, orgTextX, orgCy - 24);
   ctx.fillStyle = "#7a1f1a";
-  ctx.font = '700 21px "Tiro Devanagari Hindi", "Noto Serif Devanagari", serif';
-  ctx.fillText(CAMP.organizer, orgTextX, orgCy + 5);
+  ctx.font = font(700, 24, true);
+  ctx.fillText(CAMP.organizer, orgTextX, orgCy + 6);
   ctx.fillStyle = "#1b2a4a";
-  ctx.font = '400 14px "Noto Sans Devanagari", "Noto Sans", sans-serif';
-  let honorY = orgCy + 24;
+  ctx.font = font(400, 16);
+  let honorY = orgCy + 28;
   for (const line of honorLines) {
     ctx.fillText(line, orgTextX, honorY);
-    honorY += 18;
+    honorY += 20;
   }
 
-  y += orgH + 14;
-  const qrSize = 148;
-  const qrBox = 176;
+  y += orgH + sectionGap;
+  const identY = y;
   const qrBoxX = width - margin - qrBox;
-  const leftW = qrBoxX - margin - 16;
 
   ctx.textAlign = "left";
   ctx.fillStyle = "#1b2a4a";
-  ctx.font = '700 22px "Tiro Devanagari Hindi", "Noto Serif Devanagari", serif';
-  let titleY = y + 6;
-  for (const line of wrapText(ctx, CAMP.formTitle, leftW)) {
+  ctx.font = font(700, 22, true);
+  let titleY = identY + 22;
+  for (const line of formTitleLines) {
     ctx.fillText(line, margin, titleY);
     titleY += 28;
   }
 
   const numY = titleY + 8;
-  const numH = 78;
   ctx.fillStyle = "#fffdf8";
   fillRoundRect(ctx, margin, numY, leftW, numH, 12);
   ctx.strokeStyle = "#7a1f1a";
-  ctx.lineWidth = 2.5;
+  ctx.lineWidth = 2.8;
   strokeRoundRect(ctx, margin, numY, leftW, numH, 12);
   ctx.strokeStyle = "#c4a35a";
-  ctx.lineWidth = 1.5;
+  ctx.lineWidth = 1.6;
   strokeRoundRect(ctx, margin + 5, numY + 5, leftW - 10, numH - 10, 8);
   ctx.fillStyle = "#7a1f1a";
-  ctx.font = '600 15px "Noto Sans Devanagari", "Noto Sans", sans-serif';
+  ctx.font = font(600, 16);
   ctx.fillText("पंजीकरण क्रमांक", margin + 18, numY + 28);
-  ctx.font = '700 34px "Noto Sans Devanagari", "Noto Sans", sans-serif';
-  ctx.fillText(registrationNumber, margin + 18, numY + 62);
+  ctx.font = font(700, 36);
+  ctx.fillText(registrationNumber, margin + 18, numY + 68);
 
   ctx.fillStyle = "#c45308";
-  ctx.font = '700 16px "Noto Sans Devanagari", "Noto Sans", sans-serif';
-  let dateY = numY + numH + 24;
-  for (const line of wrapText(ctx, CAMP.dateLine, leftW)) {
+  ctx.font = font(700, 17);
+  let dateY = numY + numH + 22;
+  for (const line of dateLines) {
     ctx.fillText(line, margin, dateY);
     dateY += 22;
   }
 
   ctx.fillStyle = "#ffffff";
-  fillRoundRect(ctx, qrBoxX, y, qrBox, qrBox + 22, 14);
+  fillRoundRect(ctx, qrBoxX, identY, qrBox, qrBlockH, 16);
   ctx.strokeStyle = "#c4a35a";
-  ctx.lineWidth = 2;
-  strokeRoundRect(ctx, qrBoxX, y, qrBox, qrBox + 22, 14);
+  ctx.lineWidth = 2.2;
+  strokeRoundRect(ctx, qrBoxX, identY, qrBox, qrBlockH, 16);
   const qrInner = (qrBox - qrSize) / 2;
-  drawQr(ctx, registrationNumber, qrBoxX + qrInner, y + 10, qrSize);
+  drawQr(ctx, registrationNumber, qrBoxX + qrInner, identY + 12, qrSize);
   ctx.textAlign = "center";
   ctx.fillStyle = "#1b2a4a";
-  ctx.font = '600 13px "Noto Sans Devanagari", "Noto Sans", sans-serif';
-  ctx.fillText("पंजीकरण QR", qrBoxX + qrBox / 2, y + qrBox + 12);
+  ctx.font = font(600, 14);
+  ctx.fillText("पंजीकरण QR", qrBoxX + qrBox / 2, identY + qrBox + 18);
 
-  y = Math.max(dateY + 8, y + qrBox + 30);
-  const boxW = width - margin * 2;
-  const labelW = 268;
-  const valueX = margin + labelW;
-  const valueMax = boxW - labelW - 16;
+  y = identY + identH + sectionGap;
   ctx.textAlign = "left";
-  const rows = Object.entries(details);
-  rows.forEach(([label, value], index) => {
-    ctx.font = '700 18px "Noto Sans Devanagari", "Noto Sans", sans-serif';
-    const valueLines = wrapText(ctx, value, valueMax);
-    const rowH = Math.max(46, 16 + valueLines.length * 22);
+  const valueX = margin + labelW;
+  detailRows.forEach((row, index) => {
+    const { rowH, valueLines, label } = row;
     ctx.fillStyle = index % 2 === 0 ? "#fffdf8" : "#fff6ea";
     ctx.fillRect(margin, y, boxW, rowH);
     ctx.strokeStyle = "#c4a35a";
@@ -378,73 +522,87 @@ function drawSlip(
     ctx.lineTo(valueX - 10, y + rowH - 8);
     ctx.strokeStyle = "#ead9c8";
     ctx.stroke();
-    const textY = y + 20 + (rowH - 20 - (valueLines.length - 1) * 22) / 2;
+    const textY = y + (rowH + 14) / 2 - ((valueLines.length - 1) * 24) / 2;
     ctx.fillStyle = "#7a1f1a";
-    ctx.font = '600 16px "Noto Sans Devanagari", "Noto Sans", sans-serif';
+    ctx.font = font(600, 17);
     ctx.fillText(label, margin + 14, textY);
     ctx.fillStyle = "#1b2a4a";
-    ctx.font = '700 18px "Noto Sans Devanagari", "Noto Sans", sans-serif';
+    ctx.font = font(700, 20);
     valueLines.forEach((line, i) => {
-      ctx.fillText(line, valueX, textY + i * 22);
+      ctx.fillText(line, valueX, textY + i * 24);
     });
     y += rowH;
   });
 
-  y += 14;
-  const instrBottom = height - footerH - 10;
-  const instrH = Math.max(120, instrBottom - y);
+  y += sectionGap;
+  const instrH = instrContentH + instrSlack;
   ctx.fillStyle = "#fffdf8";
-  fillRoundRect(ctx, margin, y, boxW, instrH, 14);
+  fillRoundRect(ctx, margin, y, boxW, instrH, 16);
   ctx.strokeStyle = "#c4a35a";
-  ctx.lineWidth = 1.5;
-  strokeRoundRect(ctx, margin, y, boxW, instrH, 14);
+  ctx.lineWidth = 1.6;
+  strokeRoundRect(ctx, margin, y, boxW, instrH, 16);
+
+  const pad = 14 + instrSlack / 5;
+  const innerGap = 10 + instrSlack / 5;
 
   ctx.fillStyle = "#1f7a4d";
-  fillRoundRect(ctx, margin + 10, y + 10, boxW - 20, 48, 10);
+  fillRoundRect(ctx, margin + 12, y + pad, boxW - 24, bannerH, 10);
   ctx.textAlign = "center";
   ctx.fillStyle = "#fffdf8";
-  ctx.font = '700 18px "Noto Sans Devanagari", "Noto Sans", sans-serif';
-  ctx.fillText(CAMP.operationNote, width / 2, y + 40);
-
-  ctx.fillStyle = "#7a1f1a";
-  ctx.font = '700 16px "Noto Sans Devanagari", "Noto Sans", sans-serif';
-  ctx.fillText(CAMP.freeNote, width / 2, y + 80);
-
-  ctx.textAlign = "left";
-  ctx.fillStyle = "#7a1f1a";
-  ctx.font = '600 15px "Noto Sans Devanagari", "Noto Sans", sans-serif';
-  let docsY = y + 110;
-  for (const line of wrapText(ctx, CAMP.documentsHeading, boxW - 36)) {
-    ctx.fillText(line, margin + 18, docsY);
-    docsY += 20;
-  }
-  ctx.fillStyle = "#1a1510";
-  ctx.font = '500 15px "Noto Sans Devanagari", "Noto Sans", sans-serif';
-  DOCUMENTS.forEach((doc, i) => {
-    ctx.fillText(`${i + 1}. ${doc}`, margin + 18, docsY + 8 + i * 22);
+  ctx.font = font(700, 18);
+  const opY = y + pad + (bannerH + 14) / 2 - ((opLines.length - 1) * 22) / 2;
+  opLines.forEach((line, i) => {
+    ctx.fillText(line, width / 2, opY + i * 22);
   });
 
-  const addrY = docsY + 8 + DOCUMENTS.length * 22 + 16;
-  ctx.fillStyle = "#1b2a4a";
-  ctx.font = '600 14px "Noto Sans Devanagari", "Noto Sans", sans-serif';
-  let hospitalY = addrY;
-  for (const line of wrapText(ctx, `हॉस्पिटल पता: ${CAMP.hospital}`, boxW - 36)) {
-    ctx.fillText(line, margin + 18, hospitalY);
-    hospitalY += 18;
+  let iy = y + pad + bannerH + innerGap;
+  ctx.fillStyle = "#7a1f1a";
+  ctx.font = font(700, 17);
+  for (const line of freeLines) {
+    ctx.fillText(line, width / 2, iy + 16);
+    iy += 22;
   }
-  ctx.font = '400 14px "Noto Sans Devanagari", "Noto Sans", sans-serif';
+
+  iy += innerGap;
+  ctx.textAlign = "left";
+  ctx.fillStyle = "#7a1f1a";
+  ctx.font = font(600, 16);
+  for (const line of docHeadLines) {
+    ctx.fillText(line, margin + 20, iy + 16);
+    iy += 20;
+  }
+  iy += 6;
+  ctx.fillStyle = "#1a1510";
+  ctx.font = font(500, 16);
+  docItemLines.forEach((lines) => {
+    lines.forEach((line) => {
+      ctx.fillText(line, margin + 20, iy + 16);
+      iy += 22;
+    });
+  });
+
+  iy += innerGap;
+  ctx.fillStyle = "#1b2a4a";
+  ctx.font = font(600, 15);
+  for (const line of hospitalLines) {
+    ctx.fillText(line, margin + 20, iy + 14);
+    iy += 20;
+  }
+  ctx.font = font(400, 15);
   ctx.fillStyle = "#6b5e52";
-  for (const line of wrapText(ctx, CAMP.address, boxW - 36)) {
-    ctx.fillText(line, margin + 18, hospitalY);
-    hospitalY += 18;
+  for (const line of addressLines) {
+    ctx.fillText(line, margin + 20, iy + 14);
+    iy += 20;
   }
 
   ctx.fillStyle = "#7a1f1a";
   ctx.fillRect(0, height - footerH, width, footerH);
+  ctx.fillStyle = "#c4a35a";
+  ctx.fillRect(0, height - footerH, width, 4);
   ctx.fillStyle = "#fffdf8";
   ctx.textAlign = "center";
-  ctx.font = '600 16px "Noto Sans Devanagari", "Noto Sans", sans-serif';
-  ctx.fillText(CAMP.freeNote, width / 2, height - 18);
+  ctx.font = font(600, 17);
+  ctx.fillText(CAMP.freeNote, width / 2, height - 20);
 }
 
 function jpegToPdf(jpeg: Uint8Array, imgW: number, imgH: number): Uint8Array {
@@ -495,13 +653,21 @@ function jpegToPdf(jpeg: Uint8Array, imgW: number, imgH: number): Uint8Array {
   return concat([header, ...objects, xref, trailer]);
 }
 
-export async function downloadRegistrationPdf(
+async function waitForFonts(): Promise<void> {
+  if (typeof document === "undefined" || !("fonts" in document)) return;
+  await Promise.race([
+    document.fonts.ready.catch(() => undefined),
+    new Promise<void>((resolve) => {
+      window.setTimeout(resolve, 2500);
+    }),
+  ]);
+}
+
+export async function buildRegistrationPdf(
   registrationNumber: string,
   details: Record<string, string>,
-): Promise<void> {
-  if (typeof document !== "undefined" && "fonts" in document) {
-    await document.fonts.ready.catch(() => undefined);
-  }
+): Promise<{ pdf: Uint8Array; filename: string; previewDataUrl: string }> {
+  await waitForFonts();
 
   const [jagatguru, modi, yogi, bhola, logo] = await Promise.all([
     loadImage(PHOTOS.jagatguru.src),
@@ -511,18 +677,16 @@ export async function downloadRegistrationPdf(
     loadImage(CAMP.logo.src),
   ]);
 
-  const width = 1240;
-  const height = 1754;
   const canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
+  canvas.width = CANVAS_W;
+  canvas.height = CANVAS_H;
   const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("pdf");
+  if (!ctx) throw new Error("PDF नहीं बन सका।");
 
   drawSlip(
     ctx,
-    width,
-    height,
+    CANVAS_W,
+    CANVAS_H,
     registrationNumber,
     details,
     [
@@ -554,11 +718,12 @@ export async function downloadRegistrationPdf(
     logo,
   );
 
+  const previewDataUrl = canvas.toDataURL("image/jpeg", 0.82);
   const jpeg = await new Promise<Uint8Array>((resolve, reject) => {
     canvas.toBlob(
       (blob) => {
         if (!blob) {
-          reject(new Error("pdf"));
+          reject(new Error("PDF नहीं बन सका।"));
           return;
         }
         blob
@@ -571,15 +736,53 @@ export async function downloadRegistrationPdf(
     );
   });
 
-  const pdf = jpegToPdf(jpeg, width, height);
-  const bytes = Uint8Array.from(pdf);
+  return {
+    pdf: jpegToPdf(jpeg, CANVAS_W, CANVAS_H),
+    filename: `${registrationNumber}.pdf`,
+    previewDataUrl,
+  };
+}
+
+export async function saveRegistrationPdf(
+  registrationNumber: string,
+  details: Record<string, string>,
+): Promise<SlipSaveResult> {
+  const { pdf, filename } = await buildRegistrationPdf(registrationNumber, details);
+  const bytes = new Uint8Array(pdf.byteLength);
+  bytes.set(pdf);
   const blob = new Blob([bytes], { type: "application/pdf" });
+
+  if (isIosDevice()) {
+    const file = new File([blob], filename, { type: "application/pdf" });
+    const shared = await trySharePdf(file);
+    if (shared) {
+      return { filename, needsOpenFallback: false, openUrl: null, revoke: () => undefined };
+    }
+    const url = URL.createObjectURL(blob);
+    return {
+      filename,
+      needsOpenFallback: true,
+      openUrl: url,
+      revoke: () => URL.revokeObjectURL(url),
+    };
+  }
+
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `${registrationNumber}.pdf`;
+  a.download = filename;
+  a.rel = "noopener";
+  a.style.display = "none";
   document.body.appendChild(a);
   a.click();
   a.remove();
-  URL.revokeObjectURL(url);
+  window.setTimeout(() => URL.revokeObjectURL(url), 20_000);
+  return { filename, needsOpenFallback: false, openUrl: null, revoke: () => undefined };
+}
+
+export async function downloadRegistrationPdf(
+  registrationNumber: string,
+  details: Record<string, string>,
+): Promise<SlipSaveResult> {
+  return saveRegistrationPdf(registrationNumber, details);
 }
