@@ -55,3 +55,54 @@ function concat(parts: Uint8Array[]): Uint8Array {
   }
   return out;
 }
+
+function wrapText(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  maxWidth: number,
+): string[] {
+  const lines: string[] = [];
+  const pushFitted = (chunk: string) => {
+    if (ctx.measureText(chunk).width <= maxWidth) {
+      lines.push(chunk);
+      return;
+    }
+    let current = "";
+    for (const ch of chunk) {
+      const next = current + ch;
+      if (current && ctx.measureText(next).width > maxWidth) {
+        lines.push(current);
+        current = ch;
+      } else {
+        current = next;
+      }
+    }
+    if (current) lines.push(current);
+  };
+  const paragraphs = text.split(/\n+/);
+  for (const paragraph of paragraphs) {
+    const words = paragraph.split(/\s+/).filter(Boolean);
+    if (words.length === 0) continue;
+    let current = words[0];
+    for (let i = 1; i < words.length; i += 1) {
+      const next = `${current} ${words[i]}`;
+      if (ctx.measureText(next).width <= maxWidth) {
+        current = next;
+        continue;
+      }
+      pushFitted(current);
+      current = words[i];
+    }
+    if (current) pushFitted(current);
+  }
+  return lines.length > 0 ? lines : [text];
+}
+
+function loadImage(src: string): Promise<HTMLImageElement | null> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+    img.src = src;
+  });
+}
