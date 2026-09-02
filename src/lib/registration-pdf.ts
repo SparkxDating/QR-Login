@@ -1,18 +1,11 @@
-import { encode } from "uqr";
-import { CAMP, DOCUMENTS, PHOTOS } from "@/lib/camp";
+import { CAMP, PHOTOS } from "@/lib/camp";
+import { drawSlip } from "@/lib/slip-layout";
 
 const PAGE_W = 595;
 const PAGE_H = 842;
 const CANVAS_W = 1240;
 const CANVAS_H = 1754;
 const enc = new TextEncoder();
-
-type SlipPhoto = {
-  img: HTMLImageElement | null;
-  name: string;
-  title: string;
-  cropY: number;
-};
 
 export function slipDetailsFromRow(row: {
   name: string;
@@ -56,48 +49,6 @@ function concat(parts: Uint8Array[]): Uint8Array {
   return out;
 }
 
-function wrapText(
-  ctx: CanvasRenderingContext2D,
-  text: string,
-  maxWidth: number,
-): string[] {
-  const lines: string[] = [];
-  const pushFitted = (chunk: string) => {
-    if (ctx.measureText(chunk).width <= maxWidth) {
-      lines.push(chunk);
-      return;
-    }
-    let current = "";
-    for (const ch of chunk) {
-      const next = current + ch;
-      if (current && ctx.measureText(next).width > maxWidth) {
-        lines.push(current);
-        current = ch;
-      } else {
-        current = next;
-      }
-    }
-    if (current) lines.push(current);
-  };
-  const paragraphs = text.split(/\n+/);
-  for (const paragraph of paragraphs) {
-    const words = paragraph.split(/\s+/).filter(Boolean);
-    if (words.length === 0) continue;
-    let current = words[0];
-    for (let i = 1; i < words.length; i += 1) {
-      const next = `${current} ${words[i]}`;
-      if (ctx.measureText(next).width <= maxWidth) {
-        current = next;
-        continue;
-      }
-      pushFitted(current);
-      current = words[i];
-    }
-    if (current) pushFitted(current);
-  }
-  return lines.length > 0 ? lines : [text];
-}
-
 function loadImage(src: string): Promise<HTMLImageElement | null> {
   return new Promise((resolve) => {
     const img = new Image();
@@ -105,103 +56,6 @@ function loadImage(src: string): Promise<HTMLImageElement | null> {
     img.onerror = () => resolve(null);
     img.src = src;
   });
-}
-
-function fillRoundRect(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-  r: number,
-) {
-  const radius = Math.min(r, w / 2, h / 2);
-  ctx.beginPath();
-  ctx.moveTo(x + radius, y);
-  ctx.arcTo(x + w, y, x + w, y + h, radius);
-  ctx.arcTo(x + w, y + h, x, y + h, radius);
-  ctx.arcTo(x, y + h, x, y, radius);
-  ctx.arcTo(x, y, x + w, y, radius);
-  ctx.closePath();
-  ctx.fill();
-}
-
-function strokeRoundRect(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-  r: number,
-) {
-  const radius = Math.min(r, w / 2, h / 2);
-  ctx.beginPath();
-  ctx.moveTo(x + radius, y);
-  ctx.arcTo(x + w, y, x + w, y + h, radius);
-  ctx.arcTo(x + w, y + h, x, y + h, radius);
-  ctx.arcTo(x, y + h, x, y, radius);
-  ctx.arcTo(x, y, x + w, y, radius);
-  ctx.closePath();
-  ctx.stroke();
-}
-
-function drawCoverCircle(
-  ctx: CanvasRenderingContext2D,
-  img: HTMLImageElement | null,
-  cx: number,
-  cy: number,
-  radius: number,
-  cropY: number,
-) {
-  ctx.save();
-  ctx.beginPath();
-  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-  ctx.closePath();
-  ctx.clip();
-  ctx.fillStyle = "#fff6ea";
-  ctx.fillRect(cx - radius, cy - radius, radius * 2, radius * 2);
-  if (img) {
-    const size = radius * 2;
-    const scale = Math.max(size / img.width, size / img.height);
-    const dw = img.width * scale;
-    const dh = img.height * scale;
-    const extra = dh - size;
-    ctx.drawImage(img, cx - dw / 2, cy - radius - extra * cropY, dw, dh);
-  }
-  ctx.restore();
-  ctx.beginPath();
-  ctx.arc(cx, cy, radius + 2, 0, Math.PI * 2);
-  ctx.strokeStyle = "#fff6ea";
-  ctx.lineWidth = 5;
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.arc(cx, cy, radius + 6, 0, Math.PI * 2);
-  ctx.strokeStyle = "#c4a35a";
-  ctx.lineWidth = 3.5;
-  ctx.stroke();
-}
-
-function drawQr(
-  ctx: CanvasRenderingContext2D,
-  value: string,
-  x: number,
-  y: number,
-  size: number,
-) {
-  const qr = encode(value, { ecc: "M", border: 2 });
-  const pad = Math.round(size * 0.1);
-  const inner = size - pad * 2;
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(x, y, size, size);
-  const cell = inner / qr.size;
-  ctx.fillStyle = "#1b2a4a";
-  for (let row = 0; row < qr.size; row += 1) {
-    for (let col = 0; col < qr.size; col += 1) {
-      if (qr.data[row]?.[col]) {
-        ctx.fillRect(x + pad + col * cell, y + pad + row * cell, cell + 0.4, cell + 0.4);
-      }
-    }
-  }
 }
 
 export function isIosDevice(): boolean {
@@ -226,7 +80,18 @@ export function openPdfPreviewWindow(): Window | null {
   if (!preview) return null;
   try {
     preview.document.open();
-    preview.document.write("<!DOCTYPE html><html lang=\"hi\"><head><meta charset=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><title>PDF</title></head><body><p>PDF बन रहा है...</p></body></html>");
+    preview.document.write(`<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>PDF बन रहा है...</title>
+<style>
+  html,body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;font-family:"Noto Sans Devanagari",system-ui,sans-serif;background:#fff6ea;color:#1b2a4a}
+</style>
+</head>
+<body><p>PDF बन रहा है...</p></body>
+</html>`);
     preview.document.close();
   } catch {
     // The window handle is still usable for location.replace after generation.
@@ -234,12 +99,34 @@ export function openPdfPreviewWindow(): Window | null {
   return preview;
 }
 
-function openPdfInPreview(preview: Window, url: string): boolean {
+function openPdfInPreview(preview: Window, url: string, filename: string): boolean {
   try {
     preview.location.replace(url);
     return !preview.closed;
   } catch {
-    return false;
+    try {
+      const title = filename.replace(/[<>&"'`]/g, "");
+      preview.document.open();
+      preview.document.write(`<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>${title}</title>
+<style>
+  html,body{margin:0;height:100%;background:#fff6ea}
+  iframe{border:0;width:100%;height:100%}
+</style>
+</head>
+<body>
+<iframe src="${url}" title="${title}"></iframe>
+</body>
+</html>`);
+      preview.document.close();
+      return !preview.closed;
+    } catch {
+      return false;
+    }
   }
 }
 
@@ -252,4 +139,187 @@ function triggerAnchorDownload(url: string, filename: string) {
   document.body.appendChild(a);
   a.click();
   a.remove();
+}
+
+function jpegToPdf(jpeg: Uint8Array, imgW: number, imgH: number): Uint8Array {
+  const scale = Math.min(PAGE_W / imgW, PAGE_H / imgH);
+  const drawW = imgW * scale;
+  const drawH = imgH * scale;
+  const x = (PAGE_W - drawW) / 2;
+  const y = (PAGE_H - drawH) / 2;
+  const content = `q\n${drawW.toFixed(2)} 0 0 ${drawH.toFixed(2)} ${x.toFixed(2)} ${y.toFixed(2)} cm\n/Im1 Do\nQ\n`;
+  const contentBytes = enc.encode(content);
+
+  const objects: Uint8Array[] = [
+    enc.encode("1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n"),
+    enc.encode("2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj\n"),
+    enc.encode(
+      "3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /XObject << /Im1 5 0 R >> >> /Contents 4 0 R >> endobj\n",
+    ),
+    concat([
+      enc.encode(`4 0 obj << /Length ${contentBytes.length} >> stream\n`),
+      contentBytes,
+      enc.encode("endstream\nendobj\n"),
+    ]),
+    concat([
+      enc.encode(
+        `5 0 obj << /Type /XObject /Subtype /Image /Width ${imgW} /Height ${imgH} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpeg.length} >> stream\n`,
+      ),
+      jpeg,
+      enc.encode("\nendstream\nendobj\n"),
+    ]),
+  ];
+
+  const header = enc.encode("%PDF-1.4\n");
+  const offsets = [0];
+  let pos = header.length;
+  for (const obj of objects) {
+    offsets.push(pos);
+    pos += obj.length;
+  }
+  const xrefStart = pos;
+  const xrefLines = ["xref\n", `0 ${objects.length + 1}\n`, "0000000000 65535 f \n"];
+  for (let i = 1; i < offsets.length; i += 1) {
+    xrefLines.push(`${String(offsets[i]).padStart(10, "0")} 00000 n \n`);
+  }
+  const xref = enc.encode(xrefLines.join(""));
+  const trailer = enc.encode(
+    `trailer << /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefStart}\n%%EOF\n`,
+  );
+  return concat([header, ...objects, xref, trailer]);
+}
+
+async function waitForFonts(): Promise<void> {
+  if (typeof document === "undefined" || !("fonts" in document)) return;
+  await Promise.race([
+    document.fonts.ready.catch(() => undefined),
+    new Promise<void>((resolve) => {
+      window.setTimeout(resolve, 2500);
+    }),
+  ]);
+}
+
+export async function buildRegistrationPdf(
+  registrationNumber: string,
+  details: Record<string, string>,
+): Promise<{ pdf: Uint8Array; filename: string; previewDataUrl: string }> {
+  await waitForFonts();
+
+  const [jagatguru, modi, yogi, bhola, logo] = await Promise.all([
+    loadImage(PHOTOS.jagatguru.src),
+    loadImage(PHOTOS.modi.src),
+    loadImage(PHOTOS.yogi.src),
+    loadImage(PHOTOS.bhola.src),
+    loadImage(CAMP.logo.src),
+  ]);
+
+  const canvas = document.createElement("canvas");
+  canvas.width = CANVAS_W;
+  canvas.height = CANVAS_H;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("PDF नहीं बन सका।");
+
+  drawSlip(
+    ctx,
+    CANVAS_W,
+    CANVAS_H,
+    registrationNumber,
+    details,
+    [
+      {
+        img: jagatguru,
+        name: PHOTOS.jagatguru.name,
+        title: PHOTOS.jagatguru.title,
+        cropY: 0.08,
+      },
+      {
+        img: modi,
+        name: PHOTOS.modi.name,
+        title: PHOTOS.modi.title,
+        cropY: 0.22,
+      },
+      {
+        img: yogi,
+        name: PHOTOS.yogi.name,
+        title: PHOTOS.yogi.title,
+        cropY: 0.18,
+      },
+    ],
+    {
+      img: bhola,
+      name: PHOTOS.bhola.name,
+      title: PHOTOS.bhola.title,
+      cropY: 0.18,
+    },
+    logo,
+  );
+
+  const previewDataUrl = canvas.toDataURL("image/jpeg", 0.82);
+  const jpeg = await new Promise<Uint8Array>((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) {
+          reject(new Error("PDF नहीं बन सका।"));
+          return;
+        }
+        blob
+          .arrayBuffer()
+          .then((buf) => resolve(new Uint8Array(buf)))
+          .catch(reject);
+      },
+      "image/jpeg",
+      0.9,
+    );
+  });
+
+  return {
+    pdf: jpegToPdf(jpeg, CANVAS_W, CANVAS_H),
+    filename: `${registrationNumber}.pdf`,
+    previewDataUrl,
+  };
+}
+
+export async function saveRegistrationPdf(
+  registrationNumber: string,
+  details: Record<string, string>,
+  previewWindow?: Window | null,
+): Promise<SlipSaveResult> {
+  try {
+    const { pdf, filename } = await buildRegistrationPdf(registrationNumber, details);
+    const bytes = new Uint8Array(pdf.byteLength);
+    bytes.set(pdf);
+    const blob = new Blob([bytes], { type: "application/pdf" });
+    const file = new File([blob], filename, { type: "application/pdf" });
+    const url = URL.createObjectURL(file);
+    const revoke = () => URL.revokeObjectURL(url);
+
+    if (isIosDevice()) {
+      const preview = previewWindow && !previewWindow.closed ? previewWindow : null;
+      if (preview && !openPdfInPreview(preview, url, filename)) {
+        closePreviewWindow(preview);
+      }
+      return {
+        filename,
+        needsOpenFallback: true,
+        openUrl: url,
+        revoke,
+      };
+    }
+
+    closePreviewWindow(previewWindow);
+    triggerAnchorDownload(url, filename);
+    window.setTimeout(revoke, 20_000);
+    return { filename, needsOpenFallback: false, openUrl: null, revoke: () => undefined };
+  } catch (error) {
+    closePreviewWindow(previewWindow);
+    throw error;
+  }
+}
+
+export async function downloadRegistrationPdf(
+  registrationNumber: string,
+  details: Record<string, string>,
+  previewWindow?: Window | null,
+): Promise<SlipSaveResult> {
+  return saveRegistrationPdf(registrationNumber, details, previewWindow);
 }
