@@ -29,9 +29,10 @@ The GitHub repo is already Vercel-ready (Nitro `vercel` preset + `vercel.json`).
 
 | Variable | Required | Notes |
 |---|---|---|
-| `ADMIN_PASSWORD` | **Yes** | Min 8 characters. No default. |
+| `ADMIN_PASSWORD` | **Yes** | Min 8 characters. Initial admin password. No default. |
 | `DATABASE_URL` | **Yes** on Vercel | Neon/Postgres. Without it, registrations do not persist. |
 | `ADMIN_SESSION_SECRET` | Optional | Cookie signing secret |
+| `ADMIN_RECOVERY_CODE` | Optional | Min 8 characters. Forgot-password recovery. Never commit a real value. |
 
 4. Easiest database: Vercel dashboard → Storage → **Neon** → create, then it fills `DATABASE_URL`.
 5. Deploy. Public form is `https://YOUR-PROJECT.vercel.app/register`. Admin is `/admin`.
@@ -51,11 +52,12 @@ npm run dev
 
 | Variable | Required | Purpose |
 |---|---|---|
-| `ADMIN_PASSWORD` | **Yes** for `/admin` | Admin login. No fallback. |
+| `ADMIN_PASSWORD` | **Yes** for `/admin` | Initial admin login. After a password change, the stored hash is used. |
 | `ADMIN_SESSION_SECRET` | Optional | Session signing secret |
+| `ADMIN_RECOVERY_CODE` | Optional | Forgot-password recovery code. Empty in `.env.example`. |
 | `DATABASE_URL` | On deploy | Postgres connection string |
 
-There is **no default admin password**. If `ADMIN_PASSWORD` is unset, admin login is disabled.
+There is **no default admin password**. If `ADMIN_PASSWORD` is unset and no hashed password has been saved yet, admin login is disabled.
 
 ## Scripts
 
