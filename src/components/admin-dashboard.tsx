@@ -37,7 +37,13 @@ export function AdminDashboard() {
   }
 
   if (!authed) {
-    return <AdminLogin configured={configured} onSuccess={() => setAuthed(true)} />;
+    return (
+      <AdminLogin
+        configured={configured}
+        onSuccess={() => setAuthed(true)}
+        onRecovered={() => setConfigured(true)}
+      />
+    );
   }
 
   return (
