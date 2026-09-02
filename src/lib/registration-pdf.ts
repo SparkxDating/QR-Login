@@ -34,6 +34,7 @@ export function slipDetailsFromRow(row: {
 export type SlipSaveResult = {
   filename: string;
   needsOpenFallback: boolean;
+  openedInBrowser: boolean;
   openUrl: string | null;
   revoke: () => void;
 };
@@ -65,6 +66,11 @@ export function isIosDevice(): boolean {
   return navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
 }
 
+function isIosWebKitNonSafari(): boolean {
+  if (!isIosDevice()) return false;
+  return /CriOS|FxiOS|EdgiOS|OPiOS|DuckDuckGo|YaBrowser/i.test(navigator.userAgent || "");
+}
+
 function closePreviewWindow(preview: Window | null | undefined) {
   if (!preview || preview.closed) return;
   try {
@@ -74,13 +80,7 @@ function closePreviewWindow(preview: Window | null | undefined) {
   }
 }
 
-export function openPdfPreviewWindow(): Window | null {
-  if (typeof window === "undefined" || !isIosDevice()) return null;
-  const preview = window.open("", "_blank");
-  if (!preview) return null;
-  try {
-    preview.document.open();
-    preview.document.write(`<!DOCTYPE html>
+const LOADING_HTML = `<!DOCTYPE html>
 <html lang="hi">
 <head>
 <meta charset="utf-8"/>
@@ -91,50 +91,86 @@ export function openPdfPreviewWindow(): Window | null {
 </style>
 </head>
 <body><p>PDF बन रहा है...</p></body>
-</html>`);
-    preview.document.close();
+</html>`;
+
+export function openPdfPreviewWindow(): Window | null {
+  if (typeof window === "undefined" || !isIosDevice()) return null;
+  let preview: Window | null = null;
+  try {
+    preview = window.open("about:blank", "_blank");
   } catch {
-    // The window handle is still usable for location.replace after generation.
+    preview = null;
+  }
+  if (!preview) return null;
+  try {
+    preview.document.open();
+    preview.document.write(LOADING_HTML);
+    preview.document.close();
+    preview.stop?.();
+  } catch {
+    // Opener can still set location.href after generation.
   }
   return preview;
 }
 
+function escapeHtml(value: string): string {
+  return value.replace(/[<>&"'`]/g, "");
+}
+
 function openPdfInPreview(preview: Window, url: string, filename: string): boolean {
+  if (preview.closed) return false;
   try {
-    preview.location.replace(url);
-    return !preview.closed;
+    preview.location.href = url;
+    if (!preview.closed) return true;
   } catch {
-    try {
-      const title = filename.replace(/[<>&"'`]/g, "");
-      preview.document.open();
-      preview.document.write(`<!DOCTYPE html>
+    // Fall through to same-origin document navigation.
+  }
+  try {
+    const title = escapeHtml(filename);
+    const safeUrl = JSON.stringify(url);
+    preview.document.open();
+    preview.document.write(`<!DOCTYPE html>
 <html lang="hi">
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>${title}</title>
-<style>
-  html,body{margin:0;height:100%;background:#fff6ea}
-  iframe{border:0;width:100%;height:100%}
-</style>
 </head>
 <body>
-<iframe src="${url}" title="${title}"></iframe>
+<p>PDF खुल रहा है...</p>
+<script>
+  try { location.href = ${safeUrl}; }
+  catch (e) { location.replace(${safeUrl}); }
+</script>
+<p><a href="${escapeHtml(url)}">${title}</a></p>
 </body>
 </html>`);
-      preview.document.close();
-      return !preview.closed;
-    } catch {
-      return false;
-    }
+    preview.document.close();
+    return !preview.closed;
+  } catch {
+    return false;
   }
+}
+
+function readBlobAsDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      if (typeof reader.result === "string" && reader.result.startsWith("data:")) {
+        resolve(reader.result);
+        return;
+      }
+      reject(new Error("PDF नहीं बन सका।"));
+    };
+    reader.onerror = () => reject(new Error("PDF नहीं बन सका।"));
+    reader.readAsDataURL(blob);
+  });
 }
 
 function triggerAnchorDownload(url: string, filename: string) {
   const a = document.createElement("a");
   a.href = url;
   a.download = filename;
-  a.rel = "noopener";
   a.style.display = "none";
   document.body.appendChild(a);
   a.click();
@@ -170,7 +206,7 @@ function jpegToPdf(jpeg: Uint8Array, imgW: number, imgH: number): Uint8Array {
     ]),
   ];
 
-  const header = enc.encode("%PDF-1.4\n");
+  const header = concat([enc.encode("%PDF-1.4\n%"), new Uint8Array([0xe2, 0xe3, 0xcf, 0xd3, 0x0a])]);
   const offsets = [0];
   let pos = header.length;
   for (const obj of objects) {
@@ -294,22 +330,40 @@ export async function saveRegistrationPdf(
     const revoke = () => URL.revokeObjectURL(url);
 
     if (isIosDevice()) {
-      const preview = previewWindow && !previewWindow.closed ? previewWindow : null;
-      if (preview && !openPdfInPreview(preview, url, filename)) {
-        closePreviewWindow(preview);
+      let openUrl = url;
+      if (isIosWebKitNonSafari()) {
+        try {
+          openUrl = await readBlobAsDataUrl(file);
+        } catch {
+          openUrl = url;
+        }
       }
+      const preview = previewWindow && !previewWindow.closed ? previewWindow : null;
+      let openedInBrowser = false;
+      if (preview) {
+        openedInBrowser = openPdfInPreview(preview, openUrl, filename);
+        if (!openedInBrowser) closePreviewWindow(preview);
+      }
+      if (openUrl !== url) window.setTimeout(revoke, 20_000);
       return {
         filename,
         needsOpenFallback: true,
-        openUrl: url,
-        revoke,
+        openedInBrowser,
+        openUrl,
+        revoke: openUrl === url ? revoke : () => undefined,
       };
     }
 
     closePreviewWindow(previewWindow);
     triggerAnchorDownload(url, filename);
     window.setTimeout(revoke, 20_000);
-    return { filename, needsOpenFallback: false, openUrl: null, revoke: () => undefined };
+    return {
+      filename,
+      needsOpenFallback: false,
+      openedInBrowser: false,
+      openUrl: null,
+      revoke: () => undefined,
+    };
   } catch (error) {
     closePreviewWindow(previewWindow);
     throw error;

@@ -142,7 +142,6 @@ export function AdminRegistrationList({
                     <a
                       href={openPdf.url}
                       target="_blank"
-                      rel="noopener noreferrer"
                       className="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-sm bg-paper px-3 text-sm font-semibold text-navy ring-1 ring-line"
                     >
                       PDF खोलें / सेव करें
@@ -174,7 +173,7 @@ export function AdminRegistrationList({
               ) : null}
               {openPdf?.id === row.id ? (
                 <p className="mt-2 text-sm text-muted">
-                  मोबाइल पर PDF खोलें, फिर Share से Files में सेव करें।
+                  PDF तैयार है। खोलें, फिर Share से Files में सेव करें।
                 </p>
               ) : null}
               <dl className="mt-3 grid grid-cols-1 gap-x-4 gap-y-1 text-sm sm:grid-cols-2">

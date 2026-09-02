@@ -78,13 +78,12 @@ export function SuccessView({
           <a
             href={openPdf.url}
             target="_blank"
-            rel="noopener noreferrer"
             className="inline-flex min-h-12 items-center justify-center gap-2 rounded-md bg-paper px-5 text-base font-semibold text-navy ring-1 ring-line"
           >
             PDF खोलें / सेव करें
           </a>
           <p className="mt-2 text-sm text-muted">
-            मोबाइल पर PDF खोलें, फिर Share से Files में सेव करें।
+            PDF तैयार है। खोलें, फिर Share से Files में सेव करें।
           </p>
         </div>
       ) : null}
