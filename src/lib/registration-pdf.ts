@@ -1,5 +1,5 @@
 import { encode } from "uqr";
-import { CAMP, PHOTOS } from "@/lib/camp";
+import { CAMP, DOCUMENTS, PHOTOS } from "@/lib/camp";
 
 const PAGE_W = 595;
 const PAGE_H = 842;
@@ -180,14 +180,16 @@ function drawQr(
   size: number,
 ) {
   const qr = encode(value, { ecc: "M", border: 2 });
-  const cell = size / qr.size;
-  ctx.fillStyle = "#fffdf8";
+  const pad = Math.round(size * 0.12);
+  const inner = size - pad * 2;
+  ctx.fillStyle = "#ffffff";
   ctx.fillRect(x, y, size, size);
+  const cell = inner / qr.size;
   ctx.fillStyle = "#1b2a4a";
   for (let row = 0; row < qr.size; row += 1) {
     for (let col = 0; col < qr.size; col += 1) {
       if (qr.data[row]?.[col]) {
-        ctx.fillRect(x + col * cell, y + row * cell, cell + 0.4, cell + 0.4);
+        ctx.fillRect(x + pad + col * cell, y + pad + row * cell, cell + 0.4, cell + 0.4);
       }
     }
   }
@@ -203,47 +205,44 @@ function drawSlip(
   organizer: SlipPhoto,
   logo: HTMLImageElement | null,
 ) {
-  const margin = 44;
+  const margin = 40;
+  const footerH = 52;
   ctx.fillStyle = "#fff6ea";
   ctx.fillRect(0, 0, width, height);
 
   ctx.fillStyle = "#7a1f1a";
-  ctx.fillRect(0, 0, width, 78);
+  ctx.fillRect(0, 0, width, 74);
   ctx.fillStyle = "#c4a35a";
-  ctx.fillRect(0, 78, width, 5);
+  ctx.fillRect(0, 74, width, 5);
 
-  if (logo) {
-    const side = 52;
-    ctx.drawImage(logo, margin, 13, side, side);
-  }
+  if (logo) ctx.drawImage(logo, margin, 11, 50, 50);
   ctx.fillStyle = "#fffdf8";
   ctx.textAlign = "center";
-  ctx.font = '600 24px "Noto Sans Devanagari", "Noto Sans", sans-serif';
-  ctx.fillText(CAMP.foundation, width / 2, 34);
-  ctx.font = '500 18px "Noto Sans Devanagari", "Noto Sans", sans-serif';
-  ctx.fillText(CAMP.hospital, width / 2, 60);
+  ctx.font = '600 23px "Noto Sans Devanagari", "Noto Sans", sans-serif';
+  ctx.fillText(CAMP.foundation, width / 2, 32);
+  ctx.font = '500 17px "Noto Sans Devanagari", "Noto Sans", sans-serif';
+  ctx.fillText(CAMP.hospital, width / 2, 56);
 
-  let y = 108;
   ctx.fillStyle = "#7a1f1a";
-  ctx.font = '700 24px "Tiro Devanagari Hindi", "Noto Serif Devanagari", serif';
-  ctx.fillText(CAMP.inspiration, width / 2, y);
+  ctx.font = '700 22px "Tiro Devanagari Hindi", "Noto Serif Devanagari", serif';
+  ctx.fillText(CAMP.inspiration, width / 2, 104);
 
   const gap = 12;
   const cardW = (width - margin * 2 - gap * 2) / 3;
   const cardX0 = margin;
-  const cardY = y + 12;
-  const radius = 62;
-  const nameFont = '700 16px "Noto Sans Devanagari", "Noto Sans", sans-serif';
-  const titleFont = '500 13px "Noto Sans Devanagari", "Noto Sans", sans-serif';
-  const nameLine = 20;
-  const titleLine = 17;
+  const cardY = 114;
+  const radius = 58;
+  const nameFont = '700 17px "Noto Sans Devanagari", "Noto Sans", sans-serif';
+  const titleFont = '500 14px "Noto Sans Devanagari", "Noto Sans", sans-serif';
+  const nameLine = 21;
+  const titleLine = 18;
   const measures = portraits.map((person) => {
     ctx.font = nameFont;
-    const nameLines = wrapText(ctx, person.name, cardW - 20);
+    const nameLines = wrapText(ctx, person.name, cardW - 18);
     ctx.font = titleFont;
-    const titleLines = wrapText(ctx, person.title, cardW - 20);
+    const titleLines = wrapText(ctx, person.title, cardW - 18);
     const h =
-      12 + radius * 2 + 10 + nameLines.length * nameLine + 4 + titleLines.length * titleLine + 12;
+      10 + radius * 2 + 10 + nameLines.length * nameLine + 4 + titleLines.length * titleLine + 12;
     return { nameLines, titleLines, h };
   });
   const cardH = Math.max(...measures.map((m) => m.h));
@@ -253,17 +252,17 @@ function drawSlip(
     if (!measure) return;
     const x = cardX0 + i * (cardW + gap);
     ctx.fillStyle = "#fffdf8";
-    fillRoundRect(ctx, x, cardY, cardW, cardH, 16);
+    fillRoundRect(ctx, x, cardY, cardW, cardH, 14);
     ctx.strokeStyle = "#c4a35a";
     ctx.lineWidth = 1.5;
-    strokeRoundRect(ctx, x, cardY, cardW, cardH, 16);
+    strokeRoundRect(ctx, x, cardY, cardW, cardH, 14);
     const cx = x + cardW / 2;
-    const cy = cardY + 12 + radius;
+    const cy = cardY + 10 + radius;
     drawCoverCircle(ctx, person.img, cx, cy, radius, person.cropY);
     ctx.textAlign = "center";
     ctx.fillStyle = "#7a1f1a";
     ctx.font = nameFont;
-    let ty = cy + radius + 24;
+    let ty = cy + radius + 22;
     for (const line of measure.nameLines) {
       ctx.fillText(line, cx, ty);
       ty += nameLine;
@@ -277,111 +276,173 @@ function drawSlip(
     }
   });
 
-  y = cardY + cardH + 16;
+  let y = cardY + cardH + 12;
   ctx.font = '400 14px "Noto Sans Devanagari", "Noto Sans", sans-serif';
-  const orgR = 38;
-  const orgCx = margin + 22 + orgR;
-  const textX = orgCx + orgR + 22;
-  const textW = width - margin - 16 - textX;
-  const honorLines = wrapText(ctx, CAMP.organizerHonor, textW);
-  const orgH = Math.max(96, 28 + honorLines.length * 18 + 28);
+  const orgR = 36;
+  const orgCx = margin + 20 + orgR;
+  const orgTextX = orgCx + orgR + 20;
+  const orgTextW = width - margin - 14 - orgTextX;
+  const honorLines = wrapText(ctx, CAMP.organizerHonor, orgTextW);
+  const orgH = Math.max(92, 24 + honorLines.length * 18 + 28);
   ctx.fillStyle = "#fffdf8";
-  fillRoundRect(ctx, margin, y, width - margin * 2, orgH, 16);
+  fillRoundRect(ctx, margin, y, width - margin * 2, orgH, 14);
   ctx.strokeStyle = "#c4a35a";
   ctx.lineWidth = 1.5;
-  strokeRoundRect(ctx, margin, y, width - margin * 2, orgH, 16);
+  strokeRoundRect(ctx, margin, y, width - margin * 2, orgH, 14);
   const orgCy = y + orgH / 2;
   drawCoverCircle(ctx, organizer.img, orgCx, orgCy, orgR, organizer.cropY);
   ctx.textAlign = "left";
   ctx.fillStyle = "#c4a35a";
   ctx.font = '600 15px "Noto Sans Devanagari", "Noto Sans", sans-serif';
-  ctx.fillText(CAMP.organizerRole, textX, orgCy - 22);
+  ctx.fillText(CAMP.organizerRole, orgTextX, orgCy - 20);
   ctx.fillStyle = "#7a1f1a";
-  ctx.font = '700 22px "Tiro Devanagari Hindi", "Noto Serif Devanagari", serif';
-  ctx.fillText(CAMP.organizer, textX, orgCy + 4);
+  ctx.font = '700 21px "Tiro Devanagari Hindi", "Noto Serif Devanagari", serif';
+  ctx.fillText(CAMP.organizer, orgTextX, orgCy + 5);
   ctx.fillStyle = "#1b2a4a";
   ctx.font = '400 14px "Noto Sans Devanagari", "Noto Sans", sans-serif';
   let honorY = orgCy + 24;
   for (const line of honorLines) {
-    ctx.fillText(line, textX, honorY);
+    ctx.fillText(line, orgTextX, honorY);
     honorY += 18;
   }
 
-  y += orgH + 18;
-  const qrSize = 118;
-  const qrX = width - margin - qrSize;
+  y += orgH + 14;
+  const qrSize = 148;
+  const qrBox = 176;
+  const qrBoxX = width - margin - qrBox;
+  const leftW = qrBoxX - margin - 16;
+
   ctx.textAlign = "left";
   ctx.fillStyle = "#1b2a4a";
-  ctx.font = '700 24px "Tiro Devanagari Hindi", "Noto Serif Devanagari", serif';
-  const titleMax = qrX - margin - 18;
-  let titleY = y + 8;
-  for (const line of wrapText(ctx, CAMP.formTitle, titleMax)) {
+  ctx.font = '700 22px "Tiro Devanagari Hindi", "Noto Serif Devanagari", serif';
+  let titleY = y + 6;
+  for (const line of wrapText(ctx, CAMP.formTitle, leftW)) {
     ctx.fillText(line, margin, titleY);
-    titleY += 30;
+    titleY += 28;
   }
+
+  const numY = titleY + 8;
+  const numH = 78;
+  ctx.fillStyle = "#fffdf8";
+  fillRoundRect(ctx, margin, numY, leftW, numH, 12);
+  ctx.strokeStyle = "#7a1f1a";
+  ctx.lineWidth = 2.5;
+  strokeRoundRect(ctx, margin, numY, leftW, numH, 12);
+  ctx.strokeStyle = "#c4a35a";
+  ctx.lineWidth = 1.5;
+  strokeRoundRect(ctx, margin + 5, numY + 5, leftW - 10, numH - 10, 8);
   ctx.fillStyle = "#7a1f1a";
-  ctx.font = '700 28px "Noto Sans Devanagari", "Noto Sans", sans-serif';
-  ctx.fillText(`पंजीकरण क्रमांक: ${registrationNumber}`, margin, titleY + 8);
+  ctx.font = '600 15px "Noto Sans Devanagari", "Noto Sans", sans-serif';
+  ctx.fillText("पंजीकरण क्रमांक", margin + 18, numY + 28);
+  ctx.font = '700 34px "Noto Sans Devanagari", "Noto Sans", sans-serif';
+  ctx.fillText(registrationNumber, margin + 18, numY + 62);
+
   ctx.fillStyle = "#c45308";
   ctx.font = '700 16px "Noto Sans Devanagari", "Noto Sans", sans-serif';
-  let dateY = titleY + 36;
-  for (const line of wrapText(ctx, CAMP.dateLine, titleMax)) {
+  let dateY = numY + numH + 24;
+  for (const line of wrapText(ctx, CAMP.dateLine, leftW)) {
     ctx.fillText(line, margin, dateY);
     dateY += 22;
   }
 
-  ctx.fillStyle = "#fffdf8";
-  fillRoundRect(ctx, qrX - 8, y - 6, qrSize + 16, qrSize + 34, 12);
+  ctx.fillStyle = "#ffffff";
+  fillRoundRect(ctx, qrBoxX, y, qrBox, qrBox + 22, 14);
   ctx.strokeStyle = "#c4a35a";
-  ctx.lineWidth = 1.5;
-  strokeRoundRect(ctx, qrX - 8, y - 6, qrSize + 16, qrSize + 34, 12);
-  drawQr(ctx, registrationNumber, qrX, y, qrSize);
+  ctx.lineWidth = 2;
+  strokeRoundRect(ctx, qrBoxX, y, qrBox, qrBox + 22, 14);
+  const qrInner = (qrBox - qrSize) / 2;
+  drawQr(ctx, registrationNumber, qrBoxX + qrInner, y + 10, qrSize);
   ctx.textAlign = "center";
   ctx.fillStyle = "#1b2a4a";
-  ctx.font = '600 12px "Noto Sans Devanagari", "Noto Sans", sans-serif';
-  ctx.fillText("पंजीकरण QR", qrX + qrSize / 2, y + qrSize + 16);
+  ctx.font = '600 13px "Noto Sans Devanagari", "Noto Sans", sans-serif';
+  ctx.fillText("पंजीकरण QR", qrBoxX + qrBox / 2, y + qrBox + 12);
 
-  y = Math.max(dateY, y + qrSize + 36) + 10;
+  y = Math.max(dateY + 8, y + qrBox + 30);
   const boxW = width - margin * 2;
+  const labelW = 268;
+  const valueX = margin + labelW;
+  const valueMax = boxW - labelW - 16;
   ctx.textAlign = "left";
-  ctx.font = '500 16px "Noto Sans Devanagari", "Noto Sans", sans-serif';
-  for (const [label, value] of Object.entries(details)) {
-    const valueX = margin + 250;
-    const valueMax = boxW - 262;
+  const rows = Object.entries(details);
+  rows.forEach(([label, value], index) => {
+    ctx.font = '700 18px "Noto Sans Devanagari", "Noto Sans", sans-serif';
     const valueLines = wrapText(ctx, value, valueMax);
-    const rowH = Math.max(34, 10 + valueLines.length * 20);
-    ctx.fillStyle = "#fffdf8";
-    ctx.fillRect(margin, y - 22, boxW, rowH);
-    ctx.strokeStyle = "#ead9c8";
+    const rowH = Math.max(46, 16 + valueLines.length * 22);
+    ctx.fillStyle = index % 2 === 0 ? "#fffdf8" : "#fff6ea";
+    ctx.fillRect(margin, y, boxW, rowH);
+    ctx.strokeStyle = "#c4a35a";
     ctx.lineWidth = 1;
-    ctx.strokeRect(margin, y - 22, boxW, rowH);
+    ctx.strokeRect(margin, y, boxW, rowH);
+    ctx.beginPath();
+    ctx.moveTo(valueX - 10, y + 8);
+    ctx.lineTo(valueX - 10, y + rowH - 8);
+    ctx.strokeStyle = "#ead9c8";
+    ctx.stroke();
+    const textY = y + 20 + (rowH - 20 - (valueLines.length - 1) * 22) / 2;
     ctx.fillStyle = "#7a1f1a";
-    ctx.fillText(label, margin + 12, y);
-    ctx.fillStyle = "#1a1510";
+    ctx.font = '600 16px "Noto Sans Devanagari", "Noto Sans", sans-serif';
+    ctx.fillText(label, margin + 14, textY);
+    ctx.fillStyle = "#1b2a4a";
+    ctx.font = '700 18px "Noto Sans Devanagari", "Noto Sans", sans-serif';
     valueLines.forEach((line, i) => {
-      ctx.fillText(line, valueX, y + i * 20);
+      ctx.fillText(line, valueX, textY + i * 22);
     });
     y += rowH;
-  }
+  });
 
   y += 14;
-  ctx.textAlign = "center";
+  const instrBottom = height - footerH - 10;
+  const instrH = Math.max(120, instrBottom - y);
+  ctx.fillStyle = "#fffdf8";
+  fillRoundRect(ctx, margin, y, boxW, instrH, 14);
+  ctx.strokeStyle = "#c4a35a";
+  ctx.lineWidth = 1.5;
+  strokeRoundRect(ctx, margin, y, boxW, instrH, 14);
+
   ctx.fillStyle = "#1f7a4d";
+  fillRoundRect(ctx, margin + 10, y + 10, boxW - 20, 48, 10);
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#fffdf8";
+  ctx.font = '700 18px "Noto Sans Devanagari", "Noto Sans", sans-serif';
+  ctx.fillText(CAMP.operationNote, width / 2, y + 40);
+
+  ctx.fillStyle = "#7a1f1a";
   ctx.font = '700 16px "Noto Sans Devanagari", "Noto Sans", sans-serif';
-  for (const line of wrapText(ctx, CAMP.operationNote, boxW)) {
-    ctx.fillText(line, width / 2, y);
-    y += 22;
+  ctx.fillText(CAMP.freeNote, width / 2, y + 80);
+
+  ctx.textAlign = "left";
+  ctx.fillStyle = "#7a1f1a";
+  ctx.font = '600 15px "Noto Sans Devanagari", "Noto Sans", sans-serif';
+  let docsY = y + 110;
+  for (const line of wrapText(ctx, CAMP.documentsHeading, boxW - 36)) {
+    ctx.fillText(line, margin + 18, docsY);
+    docsY += 20;
   }
-  ctx.fillStyle = "#6b5e52";
+  ctx.fillStyle = "#1a1510";
+  ctx.font = '500 15px "Noto Sans Devanagari", "Noto Sans", sans-serif';
+  DOCUMENTS.forEach((doc, i) => {
+    ctx.fillText(`${i + 1}. ${doc}`, margin + 18, docsY + 8 + i * 22);
+  });
+
+  const addrY = docsY + 8 + DOCUMENTS.length * 22 + 16;
+  ctx.fillStyle = "#1b2a4a";
+  ctx.font = '600 14px "Noto Sans Devanagari", "Noto Sans", sans-serif';
+  let hospitalY = addrY;
+  for (const line of wrapText(ctx, `हॉस्पिटल पता: ${CAMP.hospital}`, boxW - 36)) {
+    ctx.fillText(line, margin + 18, hospitalY);
+    hospitalY += 18;
+  }
   ctx.font = '400 14px "Noto Sans Devanagari", "Noto Sans", sans-serif';
-  for (const line of wrapText(ctx, CAMP.address, boxW)) {
-    ctx.fillText(line, width / 2, y);
-    y += 18;
+  ctx.fillStyle = "#6b5e52";
+  for (const line of wrapText(ctx, CAMP.address, boxW - 36)) {
+    ctx.fillText(line, margin + 18, hospitalY);
+    hospitalY += 18;
   }
 
   ctx.fillStyle = "#7a1f1a";
-  ctx.fillRect(0, height - 48, width, 48);
+  ctx.fillRect(0, height - footerH, width, footerH);
   ctx.fillStyle = "#fffdf8";
+  ctx.textAlign = "center";
   ctx.font = '600 16px "Noto Sans Devanagari", "Noto Sans", sans-serif';
   ctx.fillText(CAMP.freeNote, width / 2, height - 18);
 }
