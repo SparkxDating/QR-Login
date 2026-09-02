@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { CAMP } from "@/lib/camp";
-import { saveRegistrationPdf } from "@/lib/registration-pdf";
+import { openPdfPreviewWindow, saveRegistrationPdf } from "@/lib/registration-pdf";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { CheckCircle2, Download, RotateCcw } from "lucide-react";
@@ -32,12 +32,18 @@ export function SuccessView({
       URL.revokeObjectURL(openPdf.url);
       setOpenPdf(null);
     }
+    const preview = openPdfPreviewWindow();
     try {
-      const result = await saveRegistrationPdf(registrationNumber, details);
+      const result = await saveRegistrationPdf(registrationNumber, details, preview);
       if (result.needsOpenFallback && result.openUrl) {
         setOpenPdf({ url: result.openUrl, filename: result.filename });
       }
     } catch {
+      try {
+        preview?.close();
+      } catch {
+        // Ignore a blocked close.
+      }
       setDownloadError("PDF डाउनलोड नहीं हो सका। कृपया पुनः प्रयास करें।");
     } finally {
       setDownloading(false);
