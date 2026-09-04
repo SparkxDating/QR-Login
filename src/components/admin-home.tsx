@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { AdminRole } from "@/lib/admin";
-import { roleDisplay } from "@/lib/admin";
 import { BLOCKS, CAMP, STATUSES, type RegistrationStatus } from "@/lib/camp";
 import { registrationCsv, type AdminListFilters, type RegistrationRow } from "@/lib/registrations";
 import {
   bulkUpdateRegistrationStatus,
+  checkAdminSession,
   deleteRegistration,
   exportRegistrationsCsv,
   listRegistrations,
@@ -66,7 +66,8 @@ function downloadTextFile(contents: string, filename: string, type: string) {
 }
 
 export function AdminHome({ role, onLogout }: { role: AdminRole; onLogout: () => void }) {
-  const isSuperAdmin = role === "super_admin";
+  const [sessionRole, setSessionRole] = useState<AdminRole>(role);
+  const isSuperAdmin = sessionRole === "super_admin";
   const [filters, setFilters] = useState<AdminListFilters>(emptyFilters);
   const [rows, setRows] = useState<RegistrationRow[]>([]);
   const [total, setTotal] = useState(0);
@@ -165,6 +166,18 @@ export function AdminHome({ role, onLogout }: { role: AdminRole; onLogout: () =>
 
   useEffect(() => {
     setRegisterUrl(`${window.location.origin}/register`);
+  }, []);
+
+  useEffect(() => {
+    setSessionRole(role);
+  }, [role]);
+
+  useEffect(() => {
+    void checkAdminSession()
+      .then((res) => {
+        if (res.role === "admin" || res.role === "super_admin") setSessionRole(res.role);
+      })
+      .catch(() => undefined);
   }, []);
 
   const nyayaOptions = useMemo(() => nyayas, [nyayas]);
@@ -274,9 +287,9 @@ export function AdminHome({ role, onLogout }: { role: AdminRole; onLogout: () =>
             <p className="text-xs text-gold">{CAMP.foundation}</p>
             <h1 className="font-display text-xl">प्रशासन डैशबोर्ड</h1>
             <p className="text-sm text-saffron-soft">{CAMP.dateLine}</p>
-            <p className="mt-1 inline-flex items-center gap-1 rounded-sm bg-gold/20 px-2 py-0.5 text-xs font-semibold text-gold">
+            <p className="mt-1 inline-flex items-center gap-1 rounded-sm bg-gold/20 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-gold">
               {isSuperAdmin ? <Shield className="size-3" aria-hidden="true" /> : null}
-              {roleDisplay(role)}
+              {isSuperAdmin ? "SUPER ADMIN" : "Admin"}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">

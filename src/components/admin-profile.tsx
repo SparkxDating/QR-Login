@@ -458,7 +458,7 @@ export function AdminPatientProfile({
                 {canDelete ? (
                   <Button variant="danger" size="sm" onClick={() => onDelete?.(row)}>
                     <Trash2 className="size-4" aria-hidden="true" />
-                    हटाएँ
+                    पंजीकरण हटाएँ
                   </Button>
                 ) : null}
               </div>

@@ -46,6 +46,11 @@ export function AdminDashboard() {
         onSuccess={(nextRole) => {
           setRole(nextRole);
           setAuthed(true);
+          void checkAdminSession()
+            .then((res) => {
+              if (res.role === "admin" || res.role === "super_admin") setRole(res.role);
+            })
+            .catch(() => undefined);
         }}
         onRecovered={() => setConfigured(true)}
       />

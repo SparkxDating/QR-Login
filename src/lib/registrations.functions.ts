@@ -217,8 +217,6 @@ export const adminLogin = createServerFn({ method: "POST" })
       assertSameOriginWrite,
       clientKey,
       loginWithCredentials,
-      readAdminCookie,
-      readAdminSession,
     } = await import("./admin-session.server");
     const { allowRequest } = await import("./rate-limit.server");
     const { setResponseStatus } = await import("@tanstack/react-start/server");
@@ -238,11 +236,10 @@ export const adminLogin = createServerFn({ method: "POST" })
     if (result === "unavailable") {
       return { ok: false as const, error: "प्रशासन सेवा में समस्या है। कुछ देर बाद कोशिश करें।" };
     }
-    if (result !== "ok") {
+    if (result === "invalid") {
       return { ok: false as const, error: "पासवर्ड गलत है।" };
     }
-    const session = await readAdminSession(readAdminCookie());
-    return { ok: true as const, role: session?.role ?? ("admin" as const) };
+    return { ok: true as const, role: result.role };
   });
 
 export const adminLogout = createServerFn({ method: "POST" }).handler(async () => {

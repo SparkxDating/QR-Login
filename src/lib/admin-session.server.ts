@@ -316,7 +316,7 @@ async function verifyLoginPassword(password: string): Promise<"ok" | "unconfigur
 export async function loginWithCredentials(
   username: string,
   password: string,
-): Promise<"ok" | "unconfigured" | "invalid" | "unavailable"> {
+): Promise<{ ok: true; role: AdminRole } | "unconfigured" | "invalid" | "unavailable"> {
   const uname = username.trim();
   if (uname) {
     const expectedUser = superAdminUsername() ?? "\0super-admin-unconfigured";
@@ -330,7 +330,7 @@ export async function loginWithCredentials(
     const token = await signAdminToken({ role: "super_admin" });
     setAdminCookie(token);
     await writeAudit("super_admin", "login_success");
-    return "ok";
+    return { ok: true, role: "super_admin" };
   }
 
   const result = await verifyLoginPassword(password);
@@ -341,13 +341,14 @@ export async function loginWithCredentials(
   const token = await signAdminToken({ role: "admin" });
   setAdminCookie(token);
   await writeAudit("admin", "login_success");
-  return "ok";
+  return { ok: true, role: "admin" };
 }
 
 export async function loginWithPassword(
   password: string,
 ): Promise<"ok" | "unconfigured" | "invalid" | "unavailable"> {
-  return loginWithCredentials("", password);
+  const result = await loginWithCredentials("", password);
+  return typeof result === "object" ? "ok" : result;
 }
 
 export async function changeAdminPassword(
