@@ -17,11 +17,33 @@ export async function recordVisit(token: string, kind: "view" | "beat"): Promise
   const sql = await getSql();
 
   if (kind === "beat") {
-    await sql`
-      update site_visitors
-      set last_seen = now()
-      where visitor_key = ${key}
+    const today = todayIst();
+    const existing = await sql<{ last_day: string }>`
+      select last_day::text as last_day from site_visitors where visitor_key = ${key}
     `;
+    const prevDay = existing[0]?.last_day ? String(existing[0].last_day).slice(0, 10) : "";
+    if (!existing[0] || prevDay === today) {
+      await sql`
+        update site_visitors
+        set last_seen = now()
+        where visitor_key = ${key}
+      `;
+      return;
+    }
+    const rolled = await sql<{ visitor_key: string }>`
+      update site_visitors
+      set last_seen = now(), last_day = ${today}::date
+      where visitor_key = ${key} and last_day is distinct from ${today}::date
+      returning visitor_key
+    `;
+    if (rolled[0]) {
+      await sql`
+        insert into site_visit_days (day, hits, uniques)
+        values (${today}::date, 0, 1)
+        on conflict (day) do update set
+          uniques = site_visit_days.uniques + 1
+      `;
+    }
     return;
   }
 

@@ -15,16 +15,27 @@ function visitorToken(): string {
   }
 }
 
+function todayIst(): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date());
+}
+
 export function VisitHeartbeat() {
   useEffect(() => {
     const token = visitorToken().replace(/[^A-Za-z0-9_-]/g, "").slice(0, 80);
     if (token.length < 8) return;
 
-    void pingVisit({ data: { token, kind: "view" } }).catch(() => undefined);
+    let lastViewDay = "";
+
+    const send = (kind: "view" | "beat") => {
+      void pingVisit({ data: { token, kind } }).catch(() => undefined);
+      if (kind === "view") lastViewDay = todayIst();
+    };
+
+    send("view");
 
     const tick = () => {
       if (document.visibilityState !== "visible") return;
-      void pingVisit({ data: { token, kind: "beat" } }).catch(() => undefined);
+      send(todayIst() !== lastViewDay ? "view" : "beat");
     };
     const id = window.setInterval(tick, 60_000);
     document.addEventListener("visibilitychange", tick);
