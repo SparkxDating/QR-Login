@@ -377,3 +377,30 @@ export async function downloadRegistrationPdf(
 ): Promise<SlipSaveResult> {
   return saveRegistrationPdf(registrationNumber, details, previewWindow);
 }
+
+export async function printRegistrationPdf(
+  registrationNumber: string,
+  details: Record<string, string>,
+): Promise<void> {
+  const { pdf, filename } = await buildRegistrationPdf(registrationNumber, details);
+  const bytes = new Uint8Array(pdf.byteLength);
+  bytes.set(pdf);
+  const blob = new Blob([bytes], { type: "application/pdf" });
+  const url = URL.createObjectURL(blob);
+  const frame = window.open(url, "_blank", "noopener,noreferrer");
+  if (!frame) {
+    triggerAnchorDownload(url, filename);
+    window.setTimeout(() => URL.revokeObjectURL(url), 20_000);
+    return;
+  }
+  window.setTimeout(() => {
+    try {
+      frame.focus();
+      frame.print();
+    } catch {
+      // Opened PDF tab is enough if print is blocked.
+    }
+    window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  }, 700);
+}
+
