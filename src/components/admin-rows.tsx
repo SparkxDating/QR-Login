@@ -24,10 +24,12 @@ export function Stat({
   label,
   value,
   icon,
+  suffix,
 }: {
   label: string;
-  value: number;
+  value: number | string;
   icon?: ReactNode;
+  suffix?: string;
 }) {
   return (
     <div className="flex items-center gap-3 rounded-xl bg-paper p-4 shadow-[var(--shadow-card)]">
@@ -36,7 +38,10 @@ export function Stat({
       </div>
       <div className="min-w-0">
         <p className="text-xs font-medium text-muted">{label}</p>
-        <p className="font-display text-2xl tabular-nums text-navy">{value}</p>
+        <p className="font-display text-2xl tabular-nums text-navy">
+          {value}
+          {suffix ?? ""}
+        </p>
       </div>
     </div>
   );

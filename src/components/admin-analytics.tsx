@@ -78,3 +78,109 @@ export function AdminAnalytics({
     </section>
   );
 }
+
+export function VisitAnalytics({
+  visitsByDay,
+  registrationsByDay,
+  visitsVsRegistrations,
+  detailed,
+  daily,
+}: {
+  visitsByDay: { day: string; n: number }[];
+  registrationsByDay: { day: string; n: number }[];
+  visitsVsRegistrations: { day: string; visits: number; registrations: number }[];
+  detailed?: boolean;
+  daily?: { day: string; visits: number; uniques: number; registrations: number }[];
+}) {
+  const maxDual = Math.max(
+    1,
+    ...visitsVsRegistrations.flatMap((row) => [row.visits, row.registrations]),
+  );
+
+  return (
+    <section className="mt-5 grid gap-3 lg:grid-cols-3">
+      <Card>
+        <h2 className="font-display text-lg text-navy">Visits by day</h2>
+        <div className="mt-3">
+          <BarList
+            items={visitsByDay.map((row) => ({
+              key: row.day,
+              label: formatDay(row.day),
+              n: row.n,
+            }))}
+          />
+        </div>
+      </Card>
+      <Card>
+        <h2 className="font-display text-lg text-navy">Registrations by day</h2>
+        <div className="mt-3">
+          <BarList
+            items={registrationsByDay.map((row) => ({
+              key: row.day,
+              label: formatDay(row.day),
+              n: row.n,
+            }))}
+          />
+        </div>
+      </Card>
+      <Card>
+        <h2 className="font-display text-lg text-navy">Visits vs registrations</h2>
+        <div className="mt-3">
+          {visitsVsRegistrations.length === 0 ? (
+            <p className="text-sm text-muted">अभी आँकड़े उपलब्ध नहीं हैं।</p>
+          ) : (
+            <ul className="grid gap-3">
+              {visitsVsRegistrations.map((row) => (
+                <li key={row.day}>
+                  <p className="mb-1 text-sm text-navy">{formatDay(row.day)}</p>
+                  <div className="h-2 overflow-hidden rounded-full bg-cream">
+                    <div
+                      className="h-full rounded-full bg-navy"
+                      style={{ width: `${Math.max(6, (row.visits / maxDual) * 100)}%` }}
+                    />
+                  </div>
+                  <div className="mt-1 h-2 overflow-hidden rounded-full bg-cream">
+                    <div
+                      className="h-full rounded-full bg-saffron"
+                      style={{ width: `${Math.max(6, (row.registrations / maxDual) * 100)}%` }}
+                    />
+                  </div>
+                  <p className="mt-1 text-xs text-muted">
+                    Visits {row.visits} · Registrations {row.registrations}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </Card>
+      {detailed && daily && daily.length > 0 ? (
+        <Card className="lg:col-span-3">
+          <h2 className="font-display text-lg text-navy">Detailed analytics</h2>
+          <div className="mt-3 overflow-x-auto">
+            <table className="w-full min-w-[28rem] text-left text-sm">
+              <thead className="text-muted">
+                <tr>
+                  <th className="pb-2 font-medium">Day</th>
+                  <th className="pb-2 font-medium">Visits</th>
+                  <th className="pb-2 font-medium">Uniques</th>
+                  <th className="pb-2 font-medium">Registrations</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[...daily].reverse().map((row) => (
+                  <tr key={row.day} className="border-t border-line">
+                    <td className="py-1.5 text-navy">{formatDay(row.day)}</td>
+                    <td className="py-1.5 tabular-nums">{row.visits}</td>
+                    <td className="py-1.5 tabular-nums">{row.uniques}</td>
+                    <td className="py-1.5 tabular-nums">{row.registrations}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      ) : null}
+    </section>
+  );
+}

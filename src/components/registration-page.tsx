@@ -3,6 +3,7 @@ import { CampHeader } from "@/components/camp-header";
 import { CampFooter } from "@/components/camp-footer";
 import { RegistrationForm } from "@/components/registration-form";
 import { PhotoSlot } from "@/components/photo-slot";
+import { VisitHeartbeat } from "@/components/visit-heartbeat";
 import { cn } from "@/lib/utils";
 import { BedDouble, Eye, Pill } from "lucide-react";
 
@@ -15,6 +16,7 @@ const SERVICE_ICONS = {
 export function RegistrationPage() {
   return (
     <div className="poster-shell min-h-dvh overflow-x-hidden">
+      <VisitHeartbeat />
       <CampHeader />
 
       <main className="mx-auto max-w-5xl px-4 py-4 sm:px-6 sm:py-7">

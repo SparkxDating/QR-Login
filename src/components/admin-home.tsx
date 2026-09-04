@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { AdminRole } from "@/lib/admin";
+import { roleDisplay } from "@/lib/admin";
 import { BLOCKS, CAMP, STATUSES, type RegistrationStatus } from "@/lib/camp";
 import { registrationCsv, type AdminListFilters, type RegistrationRow } from "@/lib/registrations";
 import {
@@ -9,6 +10,7 @@ import {
   listRegistrations,
   updateRegistrationStatus,
 } from "@/lib/registrations.functions";
+import { getVisitStats } from "@/lib/visits.functions";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input, NativeSelect } from "@/components/ui/input";
@@ -16,7 +18,7 @@ import { Label } from "@/components/ui/label";
 import { QrCode } from "@/components/qr-code";
 import { downloadQrPng, printQr } from "@/lib/qr-print";
 import { saveRegistrationPdf, slipDetailsFromRow } from "@/lib/registration-pdf";
-import { AdminAnalytics } from "@/components/admin-analytics";
+import { AdminAnalytics, VisitAnalytics } from "@/components/admin-analytics";
 import { AdminDeleteDialog } from "@/components/admin-delete";
 import { AdminPatientProfile } from "@/components/admin-profile";
 import { AdminRegistrationList, Stat, StatusSelect } from "@/components/admin-rows";
@@ -27,6 +29,7 @@ import {
   CheckCircle2,
   Clock,
   Download,
+  Eye,
   KeyRound,
   LogOut,
   Printer,
@@ -82,7 +85,6 @@ export function AdminHome({ role, onLogout }: { role: AdminRole; onLogout: () =>
   const [notice, setNotice] = useState("");
   const [registerUrl, setRegisterUrl] = useState("/register");
   const [showPassword, setShowPassword] = useState(false);
-  const [showSecurity, setShowSecurity] = useState(false);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [bulkStatus, setBulkStatus] = useState<RegistrationStatus>("screened");
   const [bulkBusy, setBulkBusy] = useState(false);
@@ -90,6 +92,18 @@ export function AdminHome({ role, onLogout }: { role: AdminRole; onLogout: () =>
   const [pendingDelete, setPendingDelete] = useState<RegistrationRow | null>(null);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [deleteError, setDeleteError] = useState("");
+  const [visits, setVisits] = useState({
+    totalVisits: 0,
+    uniqueVisitors: 0,
+    online: 0,
+    totalRegistrations: 0,
+    conversionRate: 0,
+    visitsByDay: [] as { day: string; n: number }[],
+    registrationsByDay: [] as { day: string; n: number }[],
+    visitsVsRegistrations: [] as { day: string; visits: number; registrations: number }[],
+    daily: [] as { day: string; visits: number; uniques: number; registrations: number }[],
+    detailed: false as boolean,
+  });
 
   const setFilter = <K extends keyof AdminListFilters>(key: K, value: AdminListFilters[K]) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
@@ -99,7 +113,10 @@ export function AdminHome({ role, onLogout }: { role: AdminRole; onLogout: () =>
     setLoading(true);
     setError("");
     try {
-      const res = await listRegistrations({ data: filters });
+      const [res, visitRes] = await Promise.all([
+        listRegistrations({ data: filters }),
+        getVisitStats().catch(() => null),
+      ]);
       setRows(res.rows);
       setTotal(res.total);
       setToday(res.today);
@@ -112,6 +129,20 @@ export function AdminHome({ role, onLogout }: { role: AdminRole; onLogout: () =>
       setByDate(res.byDate);
       setByBlock(res.byBlock);
       setByStatus(res.byStatus);
+      if (visitRes) {
+        setVisits({
+          totalVisits: visitRes.totalVisits,
+          uniqueVisitors: visitRes.uniqueVisitors,
+          online: visitRes.online,
+          totalRegistrations: visitRes.totalRegistrations,
+          conversionRate: visitRes.conversionRate,
+          visitsByDay: visitRes.visitsByDay,
+          registrationsByDay: visitRes.registrationsByDay,
+          visitsVsRegistrations: visitRes.visitsVsRegistrations,
+          daily: visitRes.daily,
+          detailed: visitRes.detailed,
+        });
+      }
       setSelected((prev) => {
         const ids = new Set(res.rows.map((row) => row.id));
         const next = new Set<number>();
@@ -243,18 +274,20 @@ export function AdminHome({ role, onLogout }: { role: AdminRole; onLogout: () =>
             <p className="text-xs text-gold">{CAMP.foundation}</p>
             <h1 className="font-display text-xl">प्रशासन डैशबोर्ड</h1>
             <p className="text-sm text-saffron-soft">{CAMP.dateLine}</p>
-            {isSuperAdmin ? (
-              <p className="mt-1 inline-flex items-center gap-1 rounded-sm bg-gold/20 px-2 py-0.5 text-xs font-semibold text-gold">
-                <Shield className="size-3" aria-hidden="true" />
-                सुपर एडमिन
-              </p>
-            ) : null}
+            <p className="mt-1 inline-flex items-center gap-1 rounded-sm bg-gold/20 px-2 py-0.5 text-xs font-semibold text-gold">
+              {isSuperAdmin ? <Shield className="size-3" aria-hidden="true" /> : null}
+              {roleDisplay(role)}
+            </p>
           </div>
           <div className="flex flex-wrap gap-2">
             {isSuperAdmin ? (
-              <Button variant="secondary" size="sm" onClick={() => setShowSecurity((open) => !open)}>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => document.getElementById("super-admin")?.scrollIntoView({ behavior: "smooth" })}
+              >
                 <Shield className="size-4" aria-hidden="true" />
-                सुरक्षा
+                ⚙️ Super Admin
               </Button>
             ) : (
               <Button variant="secondary" size="sm" onClick={() => setShowPassword((open) => !open)}>
@@ -283,10 +316,47 @@ export function AdminHome({ role, onLogout }: { role: AdminRole; onLogout: () =>
         {showPassword && !isSuperAdmin ? (
           <AdminPasswordChangeForm onCancel={() => setShowPassword(false)} />
         ) : null}
-        {showSecurity && isSuperAdmin ? <AdminSecurityPanel onClose={() => setShowSecurity(false)} /> : null}
-        <div
-          className={`grid grid-cols-2 gap-3 lg:grid-cols-3${showPassword || showSecurity ? " mt-5" : ""}`}
-        >
+        {isSuperAdmin ? (
+          <AdminSecurityPanel onRequestDelete={setPendingDelete} />
+        ) : null}
+        <div className={`grid grid-cols-2 gap-3 lg:grid-cols-5${showPassword || isSuperAdmin ? " mt-5" : ""}`}>
+          <Stat
+            label="👁️ Total Link Visits"
+            value={visits.totalVisits}
+            icon={<Eye className="size-5" aria-hidden="true" />}
+          />
+          <Stat
+            label="👤 Unique Visitors"
+            value={visits.uniqueVisitors}
+            icon={<Users className="size-5" aria-hidden="true" />}
+          />
+          <Stat
+            label="🟢 Currently Online"
+            value={visits.online}
+            icon={<UserCheck className="size-5" aria-hidden="true" />}
+          />
+          <Stat
+            label="📝 Total Registrations"
+            value={visits.totalRegistrations || total}
+            icon={<CalendarDays className="size-5" aria-hidden="true" />}
+          />
+          <Stat
+            label="📈 Conversion Rate"
+            value={visits.conversionRate}
+            suffix="%"
+            icon={<CheckCircle2 className="size-5" aria-hidden="true" />}
+          />
+        </div>
+
+        <VisitAnalytics
+          visitsByDay={visits.visitsByDay}
+          registrationsByDay={visits.registrationsByDay}
+          visitsVsRegistrations={visits.visitsVsRegistrations}
+          detailed={isSuperAdmin && visits.detailed}
+          daily={isSuperAdmin ? visits.daily : []}
+        />
+
+        <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-3">
           <Stat label="कुल पंजीकरण" value={total} icon={<Users className="size-5" aria-hidden="true" />} />
           <Stat
             label="आज के पंजीकरण"

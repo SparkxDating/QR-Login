@@ -18,6 +18,7 @@ export function AdminLogin({
   onSuccess: (role: AdminRole) => void;
   onRecovered?: () => void;
 }) {
+  const [superMode, setSuperMode] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -30,7 +31,12 @@ export function AdminLogin({
     setBusy(true);
     setError("");
     try {
-      const res = await adminLogin({ data: { username: username.trim(), password } });
+      const res = await adminLogin({
+        data: {
+          username: superMode ? username.trim() : "",
+          password,
+        },
+      });
       if (!res.ok) {
         setError(res.error);
         return;
@@ -55,21 +61,51 @@ export function AdminLogin({
             />
           ) : (
             <form onSubmit={submit}>
-              <h1 className="mt-2 font-display text-2xl text-navy">प्रशासन लॉगिन</h1>
+              <h1 className="mt-2 font-display text-2xl text-navy">
+                {superMode ? "Super Admin Login" : "प्रशासन लॉगिन"}
+              </h1>
               <p className="mt-1 text-sm text-muted">केवल अधिकृत कार्यकर्ताओं के लिए</p>
               <p className="mt-2 text-sm font-medium text-saffron">{CAMP.dateLine}</p>
-              <Label className="mt-5 mb-1.5" htmlFor="admin-username">
-                उपयोगकर्ता नाम
-              </Label>
-              <Input
-                id="admin-username"
-                type="text"
-                autoComplete="username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="सामान्य एडमिन खाली छोड़ें"
-              />
-              <Label className="mt-4 mb-1.5" htmlFor="admin-password">
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={superMode ? "secondary" : "navy"}
+                  onClick={() => {
+                    setSuperMode(false);
+                    setError("");
+                  }}
+                >
+                  Admin
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={superMode ? "navy" : "secondary"}
+                  onClick={() => {
+                    setSuperMode(true);
+                    setError("");
+                  }}
+                >
+                  Super Admin Login
+                </Button>
+              </div>
+              {superMode ? (
+                <>
+                  <Label className="mt-5 mb-1.5" htmlFor="admin-username">
+                    Super Admin उपयोगकर्ता नाम
+                  </Label>
+                  <Input
+                    id="admin-username"
+                    type="text"
+                    autoComplete="username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    required
+                  />
+                </>
+              ) : null}
+              <Label className={superMode ? "mt-4 mb-1.5" : "mt-5 mb-1.5"} htmlFor="admin-password">
                 पासवर्ड
               </Label>
               <Input
@@ -91,18 +127,20 @@ export function AdminLogin({
                 </p>
               ) : null}
               <Button type="submit" className="mt-5 w-full" disabled={busy || !configured}>
-                {busy ? "जाँच हो रही है…" : "प्रवेश करें"}
+                {busy ? "जाँच हो रही है…" : superMode ? "Super Admin प्रवेश" : "प्रवेश करें"}
               </Button>
-              <p className="mt-4 text-center text-sm">
-                <button
-                  type="button"
-                  className="text-maroon hover:underline"
-                  onClick={() => setRecover(true)}
-                >
-                  पासवर्ड भूल गए?
-                </button>
-                <span className="mt-1 block text-xs text-muted">Forgot Admin Password?</span>
-              </p>
+              {!superMode ? (
+                <p className="mt-4 text-center text-sm">
+                  <button
+                    type="button"
+                    className="text-maroon hover:underline"
+                    onClick={() => setRecover(true)}
+                  >
+                    पासवर्ड भूल गए?
+                  </button>
+                  <span className="mt-1 block text-xs text-muted">Forgot Admin Password?</span>
+                </p>
+              ) : null}
               <p className="mt-3 text-center text-sm">
                 <Link to="/register" className="text-maroon hover:underline">
                   पंजीकरण पृष्ठ पर जाएँ

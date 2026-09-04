@@ -6,11 +6,13 @@ import {
   logoutAllAdminSessions,
   resetAdminPassword,
 } from "@/lib/admin-auth.functions";
+import { type RegistrationRow } from "@/lib/registrations";
+import { listRegistrations as fetchRegistrations } from "@/lib/registrations.functions";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { LoaderCircle, Shield } from "lucide-react";
+import { LoaderCircle } from "lucide-react";
 
 function formatWhen(iso: string): string {
   const date = new Date(iso);
@@ -25,7 +27,11 @@ function formatWhen(iso: string): string {
   }).format(date);
 }
 
-export function AdminSecurityPanel({ onClose }: { onClose: () => void }) {
+export function AdminSecurityPanel({
+  onRequestDelete,
+}: {
+  onRequestDelete: (row: RegistrationRow) => void;
+}) {
   const [accounts, setAccounts] = useState<
     { username: string; role: string; source: string; passwordSet: boolean }[]
   >([]);
@@ -37,7 +43,8 @@ export function AdminSecurityPanel({ onClose }: { onClose: () => void }) {
   const [notice, setNotice] = useState("");
   const [next, setNext] = useState("");
   const [confirm, setConfirm] = useState("");
-  const [busy, setBusy] = useState<"reset" | "logout" | null>(null);
+  const [busy, setBusy] = useState<"reset" | "logout" | "find" | null>(null);
+  const [regNo, setRegNo] = useState("");
 
   async function load() {
     setLoading(true);
@@ -56,6 +63,32 @@ export function AdminSecurityPanel({ onClose }: { onClose: () => void }) {
   useEffect(() => {
     void load();
   }, []);
+
+  async function onFindDelete(event: FormEvent) {
+    event.preventDefault();
+    if (busy) return;
+    const q = regNo.trim();
+    if (!q) return;
+    setBusy("find");
+    setError("");
+    try {
+      const res = await fetchRegistrations({
+        data: { registrationNumber: q },
+      });
+      const match =
+        res.rows.find((row) => row.registrationNumber.toLowerCase() === q.toLowerCase()) ??
+        res.rows[0];
+      if (!match) {
+        setError("पंजीकरण नहीं मिला।");
+        return;
+      }
+      onRequestDelete(match);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "पंजीकरण नहीं मिला।");
+    } finally {
+      setBusy(null);
+    }
+  }
 
   async function onReset(event: FormEvent) {
     event.preventDefault();
@@ -103,21 +136,9 @@ export function AdminSecurityPanel({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <Card className="mt-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 className="flex items-center gap-2 font-display text-lg text-navy">
-            <Shield className="size-4" aria-hidden="true" />
-            सुपर एडमिन सुरक्षा
-          </h2>
-          <p className="mt-1 text-sm text-muted">
-            भूमिका, पासवर्ड रीसेट, गतिविधि लॉग और सत्र नियंत्रण।
-          </p>
-        </div>
-        <Button variant="secondary" size="sm" onClick={onClose}>
-          बंद करें
-        </Button>
-      </div>
+    <Card id="super-admin" className="mt-5">
+      <h2 className="font-display text-xl text-navy">⚙️ Super Admin</h2>
+      <p className="mt-1 text-sm text-muted">केवल सुपर एडमिन — सर्वर पर अनुमति जाँची जाती है।</p>
 
       {loading ? (
         <p className="mt-4 flex items-center gap-2 text-sm text-muted">
@@ -136,61 +157,112 @@ export function AdminSecurityPanel({ onClose }: { onClose: () => void }) {
         </p>
       ) : null}
 
-      <h3 className="mt-5 font-display text-base text-navy">उपयोगकर्ता और भूमिका</h3>
-      <ul className="mt-2 grid gap-2">
-        {accounts.map((account) => (
-          <li
-            key={`${account.role}:${account.username}`}
-            className="rounded-md bg-cream px-3 py-2 text-sm"
-          >
-            <p className="font-medium text-navy">{account.username}</p>
-            <p className="text-muted">
-              {roleLabel(account.role)} · {account.source === "environment" ? "पर्यावरण" : "डेटाबेस"}
-              {account.passwordSet ? "" : " · पासवर्ड सेट नहीं"}
-            </p>
-          </li>
-        ))}
-      </ul>
-
-      <form onSubmit={onReset} className="mt-5 max-w-md">
-        <h3 className="font-display text-base text-navy">एडमिन पासवर्ड रीसेट</h3>
+      <section className="mt-5 border-t border-line pt-4">
+        <h3 className="font-display text-base text-navy">🗑️ Delete Registration</h3>
         <p className="mt-1 text-xs text-muted">
-          सामान्य एडमिन का नया पासवर्ड सेट करें। सुपर एडमिन पासवर्ड पर्यावरण में रहता है।
+          सूची या प्रोफ़ाइल पर भी हटाएँ उपलब्ध है। पुष्टि के बाद ही रिकॉर्ड स्थायी रूप से हटता है।
         </p>
-        <Label className="mt-3 mb-1.5" htmlFor="reset-admin-new">
-          नया एडमिन पासवर्ड
-        </Label>
-        <Input
-          id="reset-admin-new"
-          type="password"
-          autoComplete="new-password"
-          value={next}
-          onChange={(e) => setNext(e.target.value)}
-          minLength={8}
-          maxLength={200}
-          required
-        />
-        <Label className="mt-3 mb-1.5" htmlFor="reset-admin-confirm">
-          नया पासवर्ड दोबारा दर्ज करें
-        </Label>
-        <Input
-          id="reset-admin-confirm"
-          type="password"
-          autoComplete="new-password"
-          value={confirm}
-          onChange={(e) => setConfirm(e.target.value)}
-          minLength={8}
-          maxLength={200}
-          required
-        />
-        <Button type="submit" className="mt-4" size="sm" disabled={busy !== null}>
-          {busy === "reset" ? "सेट हो रहा है…" : "पासवर्ड रीसेट करें"}
-        </Button>
-      </form>
+        <form onSubmit={onFindDelete} className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-end">
+          <div className="min-w-0 flex-1">
+            <Label className="mb-1.5" htmlFor="delete-reg-no">
+              पंजीकरण संख्या
+            </Label>
+            <Input
+              id="delete-reg-no"
+              value={regNo}
+              onChange={(e) => setRegNo(e.target.value)}
+              placeholder="TSF-2026-00001"
+              required
+            />
+          </div>
+          <Button type="submit" variant="danger" size="sm" disabled={busy !== null}>
+            {busy === "find" ? "खोज हो रही है…" : "हटाएँ"}
+          </Button>
+        </form>
+      </section>
 
-      <div className="mt-5">
-        <h3 className="font-display text-base text-navy">सत्र</h3>
-        <p className="mt-1 text-xs text-muted">सभी सामान्य एडमिन को लॉगआउट करें। आपका सुपर एडमिन सत्र बना रहता है।</p>
+      <section className="mt-5 border-t border-line pt-4">
+        <h3 className="font-display text-base text-navy">🔐 Admin Password Management</h3>
+        <p className="mt-1 text-xs text-muted">
+          सामान्य एडमिन का नया पासवर्ड सेट करें। Super Admin पासवर्ड पर्यावरण में रहता है।
+        </p>
+        <form onSubmit={onReset} className="mt-3 max-w-md">
+          <Label className="mb-1.5" htmlFor="reset-admin-new">
+            नया एडमिन पासवर्ड
+          </Label>
+          <Input
+            id="reset-admin-new"
+            type="password"
+            autoComplete="new-password"
+            value={next}
+            onChange={(e) => setNext(e.target.value)}
+            minLength={8}
+            maxLength={200}
+            required
+          />
+          <Label className="mt-3 mb-1.5" htmlFor="reset-admin-confirm">
+            नया पासवर्ड दोबारा दर्ज करें
+          </Label>
+          <Input
+            id="reset-admin-confirm"
+            type="password"
+            autoComplete="new-password"
+            value={confirm}
+            onChange={(e) => setConfirm(e.target.value)}
+            minLength={8}
+            maxLength={200}
+            required
+          />
+          <Button type="submit" className="mt-4" size="sm" disabled={busy !== null}>
+            {busy === "reset" ? "सेट हो रहा है…" : "पासवर्ड रीसेट करें"}
+          </Button>
+        </form>
+      </section>
+
+      <section className="mt-5 border-t border-line pt-4">
+        <h3 className="font-display text-base text-navy">👥 Admin Accounts</h3>
+        <ul className="mt-2 grid gap-2">
+          {accounts.map((account) => (
+            <li
+              key={`${account.role}:${account.username}`}
+              className="rounded-md bg-cream px-3 py-2 text-sm"
+            >
+              <p className="font-medium text-navy">{account.username}</p>
+              <p className="text-muted">
+                {roleLabel(account.role)} · {account.source === "environment" ? "पर्यावरण" : "डेटाबेस"}
+                {account.passwordSet ? "" : " · पासवर्ड सेट नहीं"}
+              </p>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="mt-5 border-t border-line pt-4">
+        <h3 className="font-display text-base text-navy">📋 Activity Logs</h3>
+        {logs.length === 0 ? (
+          <p className="mt-2 text-sm text-muted">अभी कोई गतिविधि नहीं।</p>
+        ) : (
+          <ul className="mt-2 max-h-80 overflow-y-auto rounded-md bg-cream">
+            {logs.map((log) => (
+              <li key={log.id} className="border-b border-line px-3 py-2 text-sm last:border-b-0">
+                <p className="text-navy">
+                  {AUDIT_ACTION_LABELS[log.action] ?? log.action}
+                  {log.detail ? <span className="text-muted"> · {log.detail}</span> : null}
+                </p>
+                <p className="text-xs text-muted">
+                  {roleLabel(log.actorRole)} · {formatWhen(log.createdAt)}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="mt-5 border-t border-line pt-4">
+        <h3 className="font-display text-base text-navy">🚪 Logout All Sessions</h3>
+        <p className="mt-1 text-xs text-muted">
+          सभी सामान्य एडमिन को लॉगआउट करें। आपका Super Admin सत्र बना रहता है।
+        </p>
         <Button
           variant="secondary"
           size="sm"
@@ -200,26 +272,7 @@ export function AdminSecurityPanel({ onClose }: { onClose: () => void }) {
         >
           {busy === "logout" ? "समाप्त हो रहा है…" : "सभी एडमिन सत्र समाप्त करें"}
         </Button>
-      </div>
-
-      <h3 className="mt-6 font-display text-base text-navy">गतिविधि लॉग</h3>
-      {logs.length === 0 ? (
-        <p className="mt-2 text-sm text-muted">अभी कोई गतिविधि नहीं।</p>
-      ) : (
-        <ul className="mt-2 max-h-80 overflow-y-auto rounded-md bg-cream">
-          {logs.map((log) => (
-            <li key={log.id} className="border-b border-line px-3 py-2 text-sm last:border-b-0">
-              <p className="text-navy">
-                {AUDIT_ACTION_LABELS[log.action] ?? log.action}
-                {log.detail ? <span className="text-muted"> · {log.detail}</span> : null}
-              </p>
-              <p className="text-xs text-muted">
-                {roleLabel(log.actorRole)} · {formatWhen(log.createdAt)}
-              </p>
-            </li>
-          ))}
-        </ul>
-      )}
+      </section>
     </Card>
   );
 }

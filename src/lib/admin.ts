@@ -6,6 +6,10 @@ export function isAdminRole(value: unknown): value is AdminRole {
   return value === "admin" || value === "super_admin";
 }
 
+export function roleDisplay(role: string): string {
+  return role === "super_admin" ? "SUPER ADMIN" : "Admin";
+}
+
 export function roleLabel(role: string): string {
   if (role === "super_admin") return "सुपर एडमिन";
   if (role === "admin") return "एडमिन";
