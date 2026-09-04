@@ -63,12 +63,12 @@ export function statusLabel(value: string): string {
 export const PHOTOS = {
   yogi: {
     src: "/photos/yogi-adityanath.jpg",
-    name: "योगी आदित्यनाथ जी",
+    name: "मा० श्री योगी आदित्यनाथ जी महाराज",
     title: "मुख्यमंत्री उत्तर प्रदेश",
   },
   modi: {
     src: "/photos/narendra-modi.jpg",
-    name: "श्री नरेंद्र मोदी जी",
+    name: "मा० श्री नरेंद्र मोदी जी",
     title: "माननीय प्रधानमंत्री",
   },
   jagatguru: {
