@@ -107,8 +107,8 @@ export function VisitAnalytics({
     <section className="mt-5 grid gap-3">
       <div className="grid gap-3 md:grid-cols-2">
         <Card>
-          <h2 className="font-display text-lg text-navy">Visits by day</h2>
-          <p className="mt-1 text-xs text-muted">Newest first</p>
+          <h2 className="font-display text-lg text-navy">समय के साथ विज़िट</h2>
+          <p className="mt-1 text-xs text-muted">नवीनतम पहले</p>
           <div className="mt-3">
             <VisitBarList
               items={visitRows.map((row) => ({
@@ -122,8 +122,8 @@ export function VisitAnalytics({
           </div>
         </Card>
         <Card>
-          <h2 className="font-display text-lg text-navy">Registrations by day</h2>
-          <p className="mt-1 text-xs text-muted">Newest first</p>
+          <h2 className="font-display text-lg text-navy">समय के साथ पंजीकरण</h2>
+          <p className="mt-1 text-xs text-muted">नवीनतम पहले</p>
           <div className="mt-3">
             <VisitBarList
               items={regRows.map((row) => ({
@@ -141,17 +141,17 @@ export function VisitAnalytics({
       <Card>
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div>
-            <h2 className="font-display text-lg text-navy">Visits vs Registrations</h2>
-            <p className="mt-1 text-xs text-muted">Same-day comparison · newest first</p>
+            <h2 className="font-display text-lg text-navy">विज़िट बनाम पंजीकरण</h2>
+            <p className="mt-1 text-xs text-muted">उसी दिन की तुलना · नवीनतम पहले</p>
           </div>
           <ul className="flex flex-wrap gap-3 text-xs text-muted">
             <li className="flex items-center gap-1.5">
               <span className="size-2.5 rounded-full bg-navy" aria-hidden="true" />
-              Visits
+              विज़िट
             </li>
             <li className="flex items-center gap-1.5">
               <span className="size-2.5 rounded-full bg-saffron" aria-hidden="true" />
-              Registrations
+              पंजीकरण
             </li>
           </ul>
         </div>
@@ -165,7 +165,7 @@ export function VisitAnalytics({
                   <div className="mb-1 flex flex-wrap items-baseline justify-between gap-2 text-sm">
                     <span className="font-medium text-navy">{formatVisitDay(row.day)}</span>
                     <span className="tabular-nums text-muted">
-                      {row.visits} visits · {row.registrations} registrations
+                      {row.visits} विज़िट · {row.registrations} पंजीकरण
                     </span>
                   </div>
                   <div className="grid gap-1">
@@ -191,16 +191,16 @@ export function VisitAnalytics({
 
       {detailed && tableRows.length > 0 ? (
         <Card>
-          <h2 className="font-display text-lg text-navy">Detailed analytics</h2>
-          <p className="mt-1 text-xs text-muted">Super Admin · daily totals, no visitor identifiers</p>
+          <h2 className="font-display text-lg text-navy">विस्तृत आँकड़े</h2>
+          <p className="mt-1 text-xs text-muted">Super Admin · दैनिक योग, बिना आगंतुक पहचान</p>
           <div className="mt-3 -mx-2 overflow-x-auto px-2 sm:mx-0 sm:px-0">
             <table className="w-full min-w-[28rem] text-left text-sm">
               <thead className="text-muted">
                 <tr>
-                  <th className="pb-2 pr-3 font-medium">Date</th>
-                  <th className="pb-2 pr-3 font-medium">Visits</th>
-                  <th className="pb-2 pr-3 font-medium">Uniques (Approx.)</th>
-                  <th className="pb-2 font-medium">Registrations</th>
+                  <th className="pb-2 pr-3 font-medium">तिथि</th>
+                  <th className="pb-2 pr-3 font-medium">विज़िट</th>
+                  <th className="pb-2 pr-3 font-medium">अद्वितीय (अनुमान)</th>
+                  <th className="pb-2 font-medium">पंजीकरण</th>
                 </tr>
               </thead>
               <tbody>
