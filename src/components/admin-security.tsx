@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { LoaderCircle } from "lucide-react";
+import { LoaderCircle, Shield } from "lucide-react";
 
 function formatWhen(iso: string): string {
   const date = new Date(iso);
@@ -136,9 +136,16 @@ export function AdminSecurityPanel({
   }
 
   return (
-    <Card id="super-admin" className="mt-5">
-      <h2 className="font-display text-xl text-navy">⚙️ Super Admin</h2>
-      <p className="mt-1 text-sm text-muted">केवल सुपर एडमिन — सर्वर पर अनुमति जाँची जाती है।</p>
+    <Card id="super-admin">
+      <div className="flex items-start gap-3">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-maroon text-paper">
+          <Shield className="size-5" aria-hidden="true" />
+        </span>
+        <div>
+          <h2 className="font-display text-xl text-navy">SUPER ADMIN</h2>
+          <p className="mt-1 text-sm text-muted">केवल सुपर एडमिन — सर्वर पर अनुमति जाँची जाती है।</p>
+        </div>
+      </div>
 
       {loading ? (
         <p className="mt-4 flex items-center gap-2 text-sm text-muted">
@@ -157,8 +164,8 @@ export function AdminSecurityPanel({
         </p>
       ) : null}
 
-      <section className="mt-5 border-t border-line pt-4">
-        <h3 className="font-display text-base text-navy">🗑️ Delete Registration</h3>
+      <section id="sa-delete" className="mt-5 scroll-mt-24 border-t border-line pt-4">
+        <h3 className="font-display text-base text-navy">Delete Registration</h3>
         <p className="mt-1 text-xs text-muted">
           सूची या प्रोफ़ाइल पर भी हटाएँ उपलब्ध है। पुष्टि के बाद ही रिकॉर्ड स्थायी रूप से हटता है।
         </p>
@@ -181,8 +188,8 @@ export function AdminSecurityPanel({
         </form>
       </section>
 
-      <section className="mt-5 border-t border-line pt-4">
-        <h3 className="font-display text-base text-navy">🔐 Admin Password Management</h3>
+      <section id="sa-security" className="mt-5 scroll-mt-24 border-t border-line pt-4">
+        <h3 className="font-display text-base text-navy">Password Management</h3>
         <p className="mt-1 text-xs text-muted">
           सामान्य एडमिन का नया पासवर्ड सेट करें। Super Admin पासवर्ड पर्यावरण में रहता है।
         </p>
@@ -219,8 +226,8 @@ export function AdminSecurityPanel({
         </form>
       </section>
 
-      <section className="mt-5 border-t border-line pt-4">
-        <h3 className="font-display text-base text-navy">👥 Admin Accounts</h3>
+      <section id="sa-accounts" className="mt-5 scroll-mt-24 border-t border-line pt-4">
+        <h3 className="font-display text-base text-navy">Admin Accounts</h3>
         <ul className="mt-2 grid gap-2">
           {accounts.map((account) => (
             <li
@@ -237,8 +244,8 @@ export function AdminSecurityPanel({
         </ul>
       </section>
 
-      <section className="mt-5 border-t border-line pt-4">
-        <h3 className="font-display text-base text-navy">📋 Activity Logs</h3>
+      <section id="sa-logs" className="mt-5 scroll-mt-24 border-t border-line pt-4">
+        <h3 className="font-display text-base text-navy">Activity Logs</h3>
         {logs.length === 0 ? (
           <p className="mt-2 text-sm text-muted">अभी कोई गतिविधि नहीं।</p>
         ) : (
@@ -259,7 +266,7 @@ export function AdminSecurityPanel({
       </section>
 
       <section className="mt-5 border-t border-line pt-4">
-        <h3 className="font-display text-base text-navy">🚪 Logout All Sessions</h3>
+        <h3 className="font-display text-base text-navy">Logout All Sessions</h3>
         <p className="mt-1 text-xs text-muted">
           सभी सामान्य एडमिन को लॉगआउट करें। आपका Super Admin सत्र बना रहता है।
         </p>
