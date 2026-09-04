@@ -6,6 +6,12 @@ import pg from "pg";
 import { pendingMigrations, sqlStatements } from "./migration-plan.mjs";
 
 const databaseUrl = process.env.DATABASE_URL;
+if (process.env.VERCEL) {
+  console.log(
+    "[migrate] skipping during Vercel build — getSql() applies migrations at runtime.",
+  );
+  process.exit(0);
+}
 if (!databaseUrl) {
   console.log(
     "[migrate] DATABASE_URL not set — skipping (the PGLite fallback migrates itself).",
