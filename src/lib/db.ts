@@ -1,4 +1,4 @@
-import { pendingMigrations } from "../../scripts/migration-plan.mjs";
+import { pendingMigrations, sqlStatements } from "../../scripts/migration-plan.mjs";
 
 /** Which database backend is active. */
 export type DbSource = "neon" | "pglite";
@@ -146,7 +146,9 @@ async function applyNeonMigrations(pool: import("pg").Pool): Promise<void> {
     for (const { name, path } of pendingMigrations(Object.keys(migrations), applied)) {
       try {
         await client.query("BEGIN");
-        await client.query(migrations[path]);
+        for (const statement of sqlStatements(migrations[path])) {
+          await client.query(statement);
+        }
         await client.query("insert into _migrations (name) values ($1)", [name]);
         await client.query("COMMIT");
         console.log(`[db] applied ${name}`);

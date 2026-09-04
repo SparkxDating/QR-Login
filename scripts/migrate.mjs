@@ -3,7 +3,7 @@ import { readdir, readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import pg from "pg";
-import { pendingMigrations } from "./migration-plan.mjs";
+import { pendingMigrations, sqlStatements } from "./migration-plan.mjs";
 
 const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) {
@@ -18,7 +18,8 @@ const migrationsDir = join(dirname(fileURLToPath(import.meta.url)), "..", "migra
 async function main() {
   let entries;
   try {
-    entries = await readdir(migrationsDir);
+    const ents = await readdir(migrationsDir, { withFileTypes: true });
+    entries = ents.filter((ent) => ent.isFile()).map((ent) => ent.name);
   } catch {
     console.log("[migrate] no migrations/ directory — nothing to do.");
     return;
@@ -43,7 +44,9 @@ async function main() {
       const text = await readFile(join(migrationsDir, name), "utf8");
       try {
         await client.query("BEGIN");
-        await client.query(text);
+        for (const statement of sqlStatements(text)) {
+          await client.query(statement);
+        }
         await client.query("INSERT INTO _migrations (name) VALUES ($1)", [name]);
         await client.query("COMMIT");
       } catch (err) {
