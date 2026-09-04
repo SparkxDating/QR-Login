@@ -321,22 +321,24 @@ export function AdminHome({ role, onLogout }: { role: AdminRole; onLogout: () =>
         ) : null}
         <div className={`grid grid-cols-2 gap-3 lg:grid-cols-5${showPassword || isSuperAdmin ? " mt-5" : ""}`}>
           <Stat
-            label="👁️ Total Link Visits"
+            label="👁️ Total Link Visits — All Time"
             value={visits.totalVisits}
             icon={<Eye className="size-5" aria-hidden="true" />}
           />
           <Stat
-            label="👤 Unique Visitors"
+            label="👤 Unique Visitors (Approx.) — All Time"
             value={visits.uniqueVisitors}
+            hint="Anonymous browser/device based estimate"
             icon={<Users className="size-5" aria-hidden="true" />}
           />
           <Stat
             label="🟢 Currently Online"
             value={visits.online}
+            hint="Active within last 5 minutes"
             icon={<UserCheck className="size-5" aria-hidden="true" />}
           />
           <Stat
-            label="📝 Total Registrations"
+            label="📝 Total Registrations — All Time"
             value={visits.totalRegistrations || total}
             icon={<CalendarDays className="size-5" aria-hidden="true" />}
           />
