@@ -201,7 +201,7 @@ export function AdminPatientProfile({
     try {
       await printRegistrationPdf(row.registrationNumber, slipDetailsFromRow(row));
     } catch {
-      setError("प्रिंट नहीं हो सका। कृपया पुनः प्रयास करें।");
+      setError("प्रिंट नहीं हो सका। कृपया पुनः प्रास करें।");
     } finally {
       setPdfBusy(null);
     }
@@ -215,7 +215,7 @@ export function AdminPatientProfile({
       onClick={onClose}
     >
       <div
-        className="max-h-[96dvh] w-full max-w-3xl overflow-y-auto rounded-t-2xl bg-cream shadow-[var(--shadow-lift)] sm:rounded-2xl"
+        className="max-h-[96dvh] w-full max-w-3xl overflow-y-auto rounded-t-2xl bg-paper shadow-[var(--shadow-lift)] sm:rounded-2xl"
         role="dialog"
         aria-modal="true"
         aria-labelledby="patient-profile-title"
@@ -384,22 +384,38 @@ export function AdminPatientProfile({
             </form>
           ) : (
             <>
-              <dl className="grid grid-cols-1 gap-x-4 gap-y-1 text-sm sm:grid-cols-2">
-                <Item k="पिता/पति" v={row.fatherOrHusbandName} />
-                <Item k="मोबाइल" v={row.mobile} />
-                <Item k="ग्राम" v={row.village} />
-                <Item k="पोस्ट" v={row.post} />
-                <Item k="न्याय पंचायत" v={row.nyayaPanchayat} />
-                <Item k="ब्लॉक" v={row.block} />
-                <Item k="तहसील" v={row.tehsil} />
-                <Item k="जनपद" v={row.district} />
-                <Item k="पंजीकरण तिथि" v={formatWhen(row.createdAt)} />
-                <Item k="स्थिति" v={statusLabel(row.status)} />
-                <Item k="जाँच तिथि" v={row.screeningDate} />
-                <Item k="ऑपरेशन तिथि" v={row.surgeryDate} />
-                <Item k="फॉलो-अप तिथि" v={row.followUpDate} />
-                <Item k="फॉलो-अप स्थिति" v={followUpStatusLabel(row.followUpStatus)} />
-              </dl>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <section className="rounded-lg bg-cream p-3">
+                  <h3 className="mb-2 text-xs font-semibold tracking-wide text-muted">रोगी जानकारी</h3>
+                  <dl className="grid gap-1 text-sm">
+                    <Item k="पिता/पति" v={row.fatherOrHusbandName} />
+                    <Item k="मोबाइल" v={row.mobile} />
+                    <Item k="स्थिति" v={statusLabel(row.status)} />
+                  </dl>
+                </section>
+                <section className="rounded-lg bg-cream p-3">
+                  <h3 className="mb-2 text-xs font-semibold tracking-wide text-muted">स्थान</h3>
+                  <dl className="grid gap-1 text-sm">
+                    <Item k="ग्राम" v={row.village} />
+                    <Item k="पोस्ट" v={row.post} />
+                    <Item k="न्याय पंचायत" v={row.nyayaPanchayat} />
+                    <Item k="ब्लॉक" v={row.block} />
+                    <Item k="तहसील" v={row.tehsil} />
+                    <Item k="जनपद" v={row.district} />
+                  </dl>
+                </section>
+                <section className="rounded-lg bg-cream p-3 sm:col-span-2">
+                  <h3 className="mb-2 text-xs font-semibold tracking-wide text-muted">पंजीकरण</h3>
+                  <dl className="grid gap-1 text-sm sm:grid-cols-2">
+                    <Item k="पंजीकरण संख्या" v={row.registrationNumber} />
+                    <Item k="पंजीकरण तिथि" v={formatWhen(row.createdAt)} />
+                    <Item k="जाँच तिथि" v={row.screeningDate} />
+                    <Item k="ऑपरेशन तिथि" v={row.surgeryDate} />
+                    <Item k="फॉलो-अप तिथि" v={row.followUpDate} />
+                    <Item k="फॉलो-अप स्थिति" v={followUpStatusLabel(row.followUpStatus)} />
+                  </dl>
+                </section>
+              </div>
               {row.note ? (
                 <p className="mt-3 text-sm text-muted">
                   <span className="font-medium text-navy">नोट: </span>
