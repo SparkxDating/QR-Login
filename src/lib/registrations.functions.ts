@@ -1,12 +1,16 @@
 import { createServerFn } from "@tanstack/react-start";
 import {
+  adminBulkStatusSchema,
+  adminEditSchema,
   adminListSchema,
   adminStatusSchema,
+  registrationCsv,
   registrationInputSchema,
+  type DuplicateKind,
   type RegistrationRow,
 } from "./registrations";
 import { BLOCKS, CAMP } from "./camp";
-import { csvCell, likeContains, sanitizeText } from "./sanitize";
+import { likeContains, sanitizeText } from "./sanitize";
 import { z } from "zod";
 
 type DbRegistration = {
@@ -24,6 +28,11 @@ type DbRegistration = {
   note: string | null;
   status: string;
   created_at: string | Date;
+  screening_date?: string | Date | null;
+  surgery_date?: string | Date | null;
+  follow_up_date?: string | Date | null;
+  follow_up_status?: string | null;
+  follow_up_notes?: string | null;
 };
 
 function toIso(value: string | Date): string {
@@ -31,7 +40,19 @@ function toIso(value: string | Date): string {
   return String(value);
 }
 
-function mapRow(row: DbRegistration): RegistrationRow {
+function toDateOnly(value: string | Date | null | undefined): string {
+  if (!value) return "";
+  if (value instanceof Date) {
+    const y = value.getUTCFullYear();
+    const m = String(value.getUTCMonth() + 1).padStart(2, "0");
+    const d = String(value.getUTCDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }
+  const text = String(value);
+  return /^\d{4}-\d{2}-\d{2}/.test(text) ? text.slice(0, 10) : "";
+}
+
+function mapRow(row: DbRegistration, duplicate: DuplicateKind = ""): RegistrationRow {
   return {
     id: Number(row.id),
     registrationNumber: row.registration_number,
@@ -47,6 +68,66 @@ function mapRow(row: DbRegistration): RegistrationRow {
     note: row.note ?? "",
     status: row.status,
     createdAt: toIso(row.created_at),
+    screeningDate: toDateOnly(row.screening_date),
+    surgeryDate: toDateOnly(row.surgery_date),
+    followUpDate: toDateOnly(row.follow_up_date),
+    followUpStatus: row.follow_up_status ?? "",
+    followUpNotes: row.follow_up_notes ?? "",
+    duplicate,
+  };
+}
+
+function dateOrNull(value: string | undefined): string | null {
+  const v = (value ?? "").trim();
+  return /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : null;
+}
+
+function buildListFilters(data: z.infer<typeof adminListSchema>): {
+  where: string;
+  params: unknown[];
+} {
+  const name = sanitizeText(data.name, 80);
+  const mobile = sanitizeText(data.mobile, 10);
+  const village = sanitizeText(data.village, 80);
+  const block = sanitizeText(data.block, 40);
+  const nyaya = sanitizeText(data.nyayaPanchayat, 80);
+  const date = sanitizeText(data.date, 10);
+  const dateFrom = sanitizeText(data.dateFrom, 10);
+  const dateTo = sanitizeText(data.dateTo, 10);
+  const status = sanitizeText(data.status, 40);
+  const registrationNumber = sanitizeText(data.registrationNumber, 40);
+
+  const filters: string[] = [];
+  const params: unknown[] = [];
+  const add = (clause: string, value: unknown) => {
+    params.push(value);
+    filters.push(clause.replace("?", `$${params.length}`));
+  };
+
+  if (registrationNumber) add("registration_number ilike ?", likeContains(registrationNumber));
+  if (name) add("name ilike ?", likeContains(name));
+  if (mobile) add("mobile like ?", `${mobile.replace(/\D/g, "")}%`);
+  if (village) add("village ilike ?", likeContains(village));
+  if (block) add("block = ?", block);
+  if (nyaya) add("nyaya_panchayat ilike ?", likeContains(nyaya));
+  if (status) add("status = ?", status);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateFrom)) {
+    add("(created_at at time zone 'Asia/Kolkata')::date >= ?::date", dateFrom);
+  }
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateTo)) {
+    add("(created_at at time zone 'Asia/Kolkata')::date <= ?::date", dateTo);
+  }
+  if (
+    /^\d{4}-\d{2}-\d{2}$/.test(date) &&
+    !/^\d{4}-\d{2}-\d{2}$/.test(dateFrom) &&
+    !/^\d{4}-\d{2}-\d{2}$/.test(dateTo)
+  ) {
+    add("(created_at at time zone 'Asia/Kolkata')::date = ?::date", date);
+  }
+
+  return {
+    where: filters.length > 0 ? `where ${filters.join(" and ")}` : "",
+    params,
   };
 }
 
@@ -178,31 +259,8 @@ export const listRegistrations = createServerFn({ method: "POST" })
     const { getSql } = await import("./db");
     await requireAdmin();
     const sql = await getSql();
+    const { where, params } = buildListFilters(data);
 
-    const name = sanitizeText(data.name, 80);
-    const mobile = sanitizeText(data.mobile, 10);
-    const block = sanitizeText(data.block, 40);
-    const nyaya = sanitizeText(data.nyayaPanchayat, 80);
-    const date = sanitizeText(data.date, 10);
-    const status = sanitizeText(data.status, 40);
-
-    const filters: string[] = [];
-    const params: unknown[] = [];
-    const add = (clause: string, value: unknown) => {
-      params.push(value);
-      filters.push(clause.replace("?", `$${params.length}`));
-    };
-
-    if (name) add("name ilike ?", likeContains(name));
-    if (mobile) add("mobile like ?", `${mobile.replace(/\D/g, "")}%`);
-    if (block) add("block = ?", block);
-    if (nyaya) add("nyaya_panchayat ilike ?", likeContains(nyaya));
-    if (status) add("status = ?", status);
-    if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-      add("(created_at at time zone 'Asia/Kolkata')::date = ?::date", date);
-    }
-
-    const where = filters.length > 0 ? `where ${filters.join(" and ")}` : "";
     const rows = await sql.query<DbRegistration>(
       `select * from registrations ${where} order by created_at desc, id desc limit 2000`,
       params,
@@ -215,16 +273,62 @@ export const listRegistrations = createServerFn({ method: "POST" })
        where (created_at at time zone 'Asia/Kolkata')::date
            = (now() at time zone 'Asia/Kolkata')::date`,
     );
+    const statusRows = await sql.query<{ status: string; n: number }>(
+      "select status, count(*)::int as n from registrations group by status",
+    );
+    const dateRows = await sql.query<{ day: string; n: number }>(
+      `select (created_at at time zone 'Asia/Kolkata')::date::text as day, count(*)::int as n
+       from registrations
+       group by 1
+       order by 1 desc
+       limit 30`,
+    );
+    const blockRows = await sql.query<{ block: string; n: number }>(
+      "select block, count(*)::int as n from registrations group by block order by block asc",
+    );
     const nyayaRows = await sql.query<{ nyaya_panchayat: string }>(
       `select distinct nyaya_panchayat from registrations
        order by nyaya_panchayat asc`,
     );
+    const villageRows = await sql.query<{ village: string }>(
+      `select distinct village from registrations order by village asc`,
+    );
+    const dupMobileRows = await sql.query<{ mobile: string }>(
+      `select mobile from registrations
+       where mobile is not null and mobile <> ''
+       group by mobile having count(*) > 1`,
+    );
+    const dupNameRows = await sql.query<{ n: string; v: string }>(
+      `select lower(trim(name)) as n, lower(trim(village)) as v
+       from registrations
+       group by 1, 2 having count(*) > 1`,
+    );
+
+    const dupMobiles = new Set(dupMobileRows.map((r) => r.mobile));
+    const dupNames = new Set(dupNameRows.map((r) => `${r.n}|${r.v}`));
+    const statusCounts: Record<string, number> = {};
+    for (const row of statusRows) statusCounts[row.status] = Number(row.n);
 
     return {
-      rows: rows.map(mapRow),
+      rows: rows.map((row) => {
+        const mobileDup = dupMobiles.has(row.mobile);
+        const nameDup = dupNames.has(`${row.name.trim().toLowerCase()}|${row.village.trim().toLowerCase()}`);
+        const duplicate: DuplicateKind = mobileDup && nameDup ? "both" : mobileDup ? "mobile" : nameDup ? "name_village" : "";
+        return mapRow(row, duplicate);
+      }),
       total: Number(totalRow?.n ?? 0),
       today: Number(todayRow?.n ?? 0),
+      pending: statusCounts.registered ?? 0,
+      screened: statusCounts.screened ?? 0,
+      selected: statusCounts.operation_recommended ?? 0,
+      completed: statusCounts.operation_completed ?? 0,
       nyayaPanchayats: nyayaRows.map((r) => r.nyaya_panchayat),
+      villages: villageRows.map((r) => r.village),
+      byDate: dateRows
+        .map((r) => ({ day: String(r.day).slice(0, 10), n: Number(r.n) }))
+        .reverse(),
+      byBlock: blockRows.map((r) => ({ block: r.block, n: Number(r.n) })),
+      byStatus: statusRows.map((r) => ({ status: r.status, n: Number(r.n) })),
     };
   });
 
@@ -249,53 +353,83 @@ export const updateRegistrationStatus = createServerFn({ method: "POST" })
     return mapRow(row);
   });
 
-export const exportRegistrationsCsv = createServerFn({ method: "POST" }).handler(
-  async () => {
+export const bulkUpdateRegistrationStatus = createServerFn({ method: "POST" })
+  .validator(adminBulkStatusSchema)
+  .handler(async ({ data }) => {
+    const { requireAdmin, assertSameOriginWrite, clientKey } = await import(
+      "./admin-session.server"
+    );
+    const { allowRequest } = await import("./rate-limit.server");
+    const { getSql } = await import("./db");
+    const { setResponseStatus } = await import("@tanstack/react-start/server");
+    assertSameOriginWrite();
+    await requireAdmin();
+    if (!allowRequest(clientKey("admin-bulk-status"), 20, 15 * 60 * 1000)) {
+      setResponseStatus(429);
+      throw new Error("बहुत अधिक प्रयास। कुछ देर बाद कोशिश करें।");
+    }
+    const sql = await getSql();
+    const ids = data.ids;
+    const placeholders = ids.map((_, i) => `$${i + 2}`).join(", ");
+    const rows = await sql.query<DbRegistration>(
+      `update registrations set status = $1 where id in (${placeholders}) returning *`,
+      [data.status, ...ids],
+    );
+    return { rows: rows.map((row) => mapRow(row)) };
+  });
+
+export const updateRegistration = createServerFn({ method: "POST" })
+  .validator(adminEditSchema)
+  .handler(async ({ data }) => {
+    const { requireAdmin, assertSameOriginWrite } = await import(
+      "./admin-session.server"
+    );
+    const { getSql } = await import("./db");
+    assertSameOriginWrite();
+    await requireAdmin();
+    if (!BLOCKS.includes(data.block)) {
+      throw new Error("कृपया ब्लॉक चुनें — चहनियाँ या सकलडीहा।");
+    }
+    const sql = await getSql();
+    const note = sanitizeText(data.note ?? "", 500);
+    const followUpNotes = sanitizeText(data.followUpNotes ?? "", 500);
+    const rows = await sql<DbRegistration>`
+      update registrations set
+        name = ${sanitizeText(data.name)},
+        father_or_husband_name = ${sanitizeText(data.fatherOrHusbandName)},
+        village = ${sanitizeText(data.village)},
+        post = ${sanitizeText(data.post)},
+        nyaya_panchayat = ${sanitizeText(data.nyayaPanchayat)},
+        block = ${data.block},
+        tehsil = ${sanitizeText(data.tehsil)},
+        district = ${sanitizeText(data.district)},
+        mobile = ${sanitizeText(data.mobile, 10)},
+        note = ${note.length > 0 ? note : null},
+        status = ${data.status},
+        screening_date = ${dateOrNull(data.screeningDate)},
+        surgery_date = ${dateOrNull(data.surgeryDate)},
+        follow_up_date = ${dateOrNull(data.followUpDate)},
+        follow_up_status = ${data.followUpStatus ?? ""},
+        follow_up_notes = ${followUpNotes.length > 0 ? followUpNotes : null}
+      where id = ${data.id}
+      returning *
+    `;
+    const row = rows[0];
+    if (!row) throw new Error("पंजीकरण नहीं मिला");
+    return mapRow(row);
+  });
+
+export const exportRegistrationsCsv = createServerFn({ method: "POST" })
+  .validator(adminListSchema)
+  .handler(async ({ data }) => {
     const { requireAdmin } = await import("./admin-session.server");
     const { getSql } = await import("./db");
     await requireAdmin();
     const sql = await getSql();
-    const rows = await sql<DbRegistration>`
-      select * from registrations order by id asc
-    `;
-    const header = [
-      "registrationNumber",
-      "name",
-      "fatherOrHusbandName",
-      "village",
-      "post",
-      "nyayaPanchayat",
-      "block",
-      "tehsil",
-      "district",
-      "mobile",
-      "note",
-      "status",
-      "createdAt",
-    ];
-    const lines = [
-      header.join(","),
-      ...rows.map((row) => {
-        const mapped = mapRow(row);
-        return [
-          mapped.registrationNumber,
-          mapped.name,
-          mapped.fatherOrHusbandName,
-          mapped.village,
-          mapped.post,
-          mapped.nyayaPanchayat,
-          mapped.block,
-          mapped.tehsil,
-          mapped.district,
-          mapped.mobile,
-          mapped.note,
-          mapped.status,
-          mapped.createdAt,
-        ]
-          .map((cell) => csvCell(String(cell)))
-          .join(",");
-      }),
-    ];
-    return { csv: `\uFEFF${lines.join("\n")}` };
-  },
-);
+    const { where, params } = buildListFilters(data);
+    const rows = await sql.query<DbRegistration>(
+      `select * from registrations ${where} order by id asc`,
+      params,
+    );
+    return { csv: registrationCsv(rows.map((row) => mapRow(row))) };
+  });

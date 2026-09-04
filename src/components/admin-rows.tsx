@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
-import { STATUSES, statusLabel } from "@/lib/camp";
-import type { RegistrationRow } from "@/lib/registrations";
+import { useEffect, useState, type ReactNode } from "react";
+import { OTHER_STATUSES, WORKFLOW_STATUSES, statusLabel } from "@/lib/camp";
+import { duplicateLabel, type RegistrationRow } from "@/lib/registrations";
 import { saveRegistrationPdf, openPdfPreviewWindow, slipDetailsFromRow } from "@/lib/registration-pdf";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -20,13 +20,21 @@ function formatWhen(iso: string): string {
   }).format(date);
 }
 
-export function Stat({ label, value }: { label: string; value: number }) {
+export function Stat({
+  label,
+  value,
+  icon,
+}: {
+  label: string;
+  value: number;
+  icon?: ReactNode;
+}) {
   return (
     <div className="flex items-center gap-3 rounded-xl bg-paper p-4 shadow-[var(--shadow-card)]">
-      <div className="flex size-11 items-center justify-center rounded-md bg-saffron/12 text-saffron">
-        <Users className="size-5" aria-hidden="true" />
+      <div className="flex size-11 shrink-0 items-center justify-center rounded-md bg-saffron/12 text-saffron">
+        {icon ?? <Users className="size-5" aria-hidden="true" />}
       </div>
-      <div>
+      <div className="min-w-0">
         <p className="text-xs font-medium text-muted">{label}</p>
         <p className="font-display text-2xl tabular-nums text-navy">{value}</p>
       </div>
@@ -43,18 +51,62 @@ function Item({ k, v }: { k: string; v: string }) {
   );
 }
 
+export function StatusSelect({
+  id,
+  value,
+  onChange,
+  className,
+}: {
+  id?: string;
+  value: string;
+  onChange: (value: string) => void;
+  className?: string;
+}) {
+  return (
+    <NativeSelect
+      id={id}
+      className={className ?? "min-h-10 w-auto min-w-44"}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+    >
+      <optgroup label="कार्यप्रवाह">
+        {WORKFLOW_STATUSES.map((s) => (
+          <option key={s.value} value={s.value}>
+            {s.label}
+          </option>
+        ))}
+      </optgroup>
+      <optgroup label="अन्य">
+        {OTHER_STATUSES.map((s) => (
+          <option key={s.value} value={s.value}>
+            {s.label}
+          </option>
+        ))}
+      </optgroup>
+    </NativeSelect>
+  );
+}
+
 export function AdminRegistrationList({
   rows,
   loading,
   error,
   filteredCount,
+  selected,
+  onToggle,
+  onToggleAll,
   onStatus,
+  onOpen,
 }: {
   rows: RegistrationRow[];
   loading: boolean;
   error: string;
   filteredCount: number;
+  selected: Set<number>;
+  onToggle: (id: number) => void;
+  onToggleAll: () => void;
   onStatus: (id: number, next: string) => void;
+  onOpen: (row: RegistrationRow) => void;
 }) {
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
   const [downloadError, setDownloadError] = useState<{ id: number; message: string } | null>(null);
@@ -101,11 +153,26 @@ export function AdminRegistrationList({
     }
   }
 
+  const allSelected = rows.length > 0 && rows.every((row) => selected.has(row.id));
+
   return (
     <div className="mt-5">
-      <p className="mb-2 text-sm text-muted">
-        दिखाए गए: <span className="tabular-nums font-medium text-navy">{filteredCount}</span>
-      </p>
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm text-muted">
+          दिखाए गए: <span className="tabular-nums font-medium text-navy">{filteredCount}</span>
+        </p>
+        {rows.length > 0 ? (
+          <label className="flex items-center gap-2 text-sm text-navy">
+            <input
+              type="checkbox"
+              className="size-4 accent-saffron"
+              checked={allSelected}
+              onChange={onToggleAll}
+            />
+            सभी चुनें
+          </label>
+        ) : null}
+      </div>
       {error ? (
         <p className="rounded-md bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>
       ) : null}
@@ -124,6 +191,13 @@ export function AdminRegistrationList({
             <li key={row.id} className="rounded-xl bg-paper p-4 shadow-[var(--shadow-card)]">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div className="flex min-w-0 flex-1 flex-wrap items-start gap-2">
+                  <input
+                    type="checkbox"
+                    className="mt-2 size-4 shrink-0 accent-saffron"
+                    checked={selected.has(row.id)}
+                    onChange={() => onToggle(row.id)}
+                    aria-label={`${row.name} चुनें`}
+                  />
                   <Button
                     variant="navy"
                     size="sm"
@@ -147,25 +221,25 @@ export function AdminRegistrationList({
                       PDF खोलें / सेव करें
                     </a>
                   ) : null}
-                  <div className="min-w-0">
-                    <p className="font-display text-lg text-navy">{row.name}</p>
+                  <button
+                    type="button"
+                    className="min-w-0 rounded-sm text-left"
+                    onClick={() => onOpen(row)}
+                  >
+                    <p className="font-display text-lg text-navy hover:underline">{row.name}</p>
                     <p className="tabular-nums text-sm font-semibold text-maroon">
                       {row.registrationNumber}
                     </p>
-                  </div>
+                    <p className="text-xs text-muted">विवरण खोलें</p>
+                  </button>
                 </div>
-                <NativeSelect
-                  className="min-h-10 w-auto min-w-44"
-                  value={row.status}
-                  onChange={(e) => void onStatus(row.id, e.target.value)}
-                >
-                  {STATUSES.map((s) => (
-                    <option key={s.value} value={s.value}>
-                      {s.label}
-                    </option>
-                  ))}
-                </NativeSelect>
+                <StatusSelect value={row.status} onChange={(next) => void onStatus(row.id, next)} />
               </div>
+              {row.duplicate ? (
+                <p className="mt-2 rounded-md bg-saffron/15 px-3 py-2 text-sm text-maroon" role="status">
+                  {duplicateLabel(row.duplicate)}
+                </p>
+              ) : null}
               {downloadError?.id === row.id ? (
                 <p className="mt-2 rounded-md bg-danger/10 px-3 py-2 text-sm text-danger" role="alert">
                   {downloadError.message}

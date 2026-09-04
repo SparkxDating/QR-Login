@@ -44,10 +44,17 @@ export type BlockName = (typeof BLOCKS)[number];
 export const STATUSES = [
   { value: "registered", label: "पंजीकृत" },
   { value: "screened", label: "जाँच पूर्ण" },
-  { value: "operation_recommended", label: "ऑपरेशन अनुशंसित" },
+  { value: "operation_recommended", label: "ऑपरेशन हेतु चयनित" },
+  { value: "operation_scheduled", label: "ऑपरेशन निर्धारित" },
   { value: "operation_completed", label: "ऑपरेशन पूर्ण" },
-  { value: "follow_up", label: "फॉलो-अप" },
+  { value: "follow_up", label: "फॉलो-अप पूर्ण" },
+  { value: "no_show", label: "नॉट-शो" },
+  { value: "ineligible", label: "अयोग्य" },
+  { value: "cancelled", label: "रद्द" },
 ] as const;
+
+export const WORKFLOW_STATUSES = STATUSES.slice(0, 6);
+export const OTHER_STATUSES = STATUSES.slice(6);
 
 export type RegistrationStatus = (typeof STATUSES)[number]["value"];
 
@@ -58,6 +65,24 @@ export const STATUS_VALUES = STATUSES.map((s) => s.value) as [
 
 export function statusLabel(value: string): string {
   return STATUSES.find((s) => s.value === value)?.label ?? value;
+}
+
+export const FOLLOW_UP_STATUSES = [
+  { value: "scheduled", label: "निर्धारित" },
+  { value: "done", label: "पूर्ण" },
+  { value: "missed", label: "छूटा" },
+  { value: "postponed", label: "स्थगित" },
+] as const;
+
+export type FollowUpStatus = (typeof FOLLOW_UP_STATUSES)[number]["value"];
+
+export const FOLLOW_UP_STATUS_VALUES = FOLLOW_UP_STATUSES.map((s) => s.value) as [
+  FollowUpStatus,
+  ...FollowUpStatus[],
+];
+
+export function followUpStatusLabel(value: string): string {
+  return FOLLOW_UP_STATUSES.find((s) => s.value === value)?.label ?? (value ? value : "—");
 }
 
 export const PHOTOS = {
