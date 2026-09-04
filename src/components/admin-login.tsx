@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { Link } from "@tanstack/react-router";
+import type { AdminRole } from "@/lib/admin";
 import { CAMP } from "@/lib/camp";
 import { adminLogin } from "@/lib/registrations.functions";
 import { AdminPasswordRecoverForm } from "@/components/admin-password";
@@ -14,9 +15,10 @@ export function AdminLogin({
   onRecovered,
 }: {
   configured: boolean;
-  onSuccess: () => void;
+  onSuccess: (role: AdminRole) => void;
   onRecovered?: () => void;
 }) {
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -28,12 +30,12 @@ export function AdminLogin({
     setBusy(true);
     setError("");
     try {
-      const res = await adminLogin({ data: { password } });
+      const res = await adminLogin({ data: { username: username.trim(), password } });
       if (!res.ok) {
         setError(res.error);
         return;
       }
-      onSuccess();
+      onSuccess(res.role);
     } catch {
       setError("लॉगिन नहीं हो सका।");
     } finally {
@@ -56,7 +58,20 @@ export function AdminLogin({
               <h1 className="mt-2 font-display text-2xl text-navy">प्रशासन लॉगिन</h1>
               <p className="mt-1 text-sm text-muted">केवल अधिकृत कार्यकर्ताओं के लिए</p>
               <p className="mt-2 text-sm font-medium text-saffron">{CAMP.dateLine}</p>
-              <Label className="mt-5 mb-1.5">पासवर्ड</Label>
+              <Label className="mt-5 mb-1.5" htmlFor="admin-username">
+                उपयोगकर्ता नाम
+              </Label>
+              <Input
+                id="admin-username"
+                type="text"
+                autoComplete="username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="सामान्य एडमिन खाली छोड़ें"
+              />
+              <Label className="mt-4 mb-1.5" htmlFor="admin-password">
+                पासवर्ड
+              </Label>
               <Input
                 id="admin-password"
                 type="password"
@@ -67,7 +82,7 @@ export function AdminLogin({
               />
               {!configured ? (
                 <p className="mt-2 text-xs text-danger">
-                  ADMIN_PASSWORD पर्यावरण चर सेट नहीं है। लॉगिन अक्षम है।
+                  प्रशासन लॉगिन कॉन्फ़िगर नहीं है।
                 </p>
               ) : null}
               {error ? (

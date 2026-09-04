@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import type { AdminRole } from "@/lib/admin";
 import { BLOCKS, CAMP, STATUSES, type RegistrationStatus } from "@/lib/camp";
 import { registrationCsv, type AdminListFilters, type RegistrationRow } from "@/lib/registrations";
 import {
   bulkUpdateRegistrationStatus,
+  deleteRegistration,
   exportRegistrationsCsv,
   listRegistrations,
   updateRegistrationStatus,
@@ -15,9 +17,11 @@ import { QrCode } from "@/components/qr-code";
 import { downloadQrPng, printQr } from "@/lib/qr-print";
 import { saveRegistrationPdf, slipDetailsFromRow } from "@/lib/registration-pdf";
 import { AdminAnalytics } from "@/components/admin-analytics";
+import { AdminDeleteDialog } from "@/components/admin-delete";
 import { AdminPatientProfile } from "@/components/admin-profile";
 import { AdminRegistrationList, Stat, StatusSelect } from "@/components/admin-rows";
 import { AdminPasswordChangeForm } from "@/components/admin-password";
+import { AdminSecurityPanel } from "@/components/admin-security";
 import {
   CalendarDays,
   CheckCircle2,
@@ -27,6 +31,7 @@ import {
   LogOut,
   Printer,
   Search,
+  Shield,
   Stethoscope,
   UserCheck,
   Users,
@@ -57,7 +62,8 @@ function downloadTextFile(contents: string, filename: string, type: string) {
   URL.revokeObjectURL(url);
 }
 
-export function AdminHome({ onLogout }: { onLogout: () => void }) {
+export function AdminHome({ role, onLogout }: { role: AdminRole; onLogout: () => void }) {
+  const isSuperAdmin = role === "super_admin";
   const [filters, setFilters] = useState<AdminListFilters>(emptyFilters);
   const [rows, setRows] = useState<RegistrationRow[]>([]);
   const [total, setTotal] = useState(0);
@@ -73,12 +79,17 @@ export function AdminHome({ onLogout }: { onLogout: () => void }) {
   const [byStatus, setByStatus] = useState<{ status: string; n: number }[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const [registerUrl, setRegisterUrl] = useState("/register");
   const [showPassword, setShowPassword] = useState(false);
+  const [showSecurity, setShowSecurity] = useState(false);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [bulkStatus, setBulkStatus] = useState<RegistrationStatus>("screened");
   const [bulkBusy, setBulkBusy] = useState(false);
   const [profile, setProfile] = useState<RegistrationRow | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<RegistrationRow | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   const setFilter = <K extends keyof AdminListFilters>(key: K, value: AdminListFilters[K]) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
@@ -200,6 +211,28 @@ export function AdminHome({ onLogout }: { onLogout: () => void }) {
     }
   }
 
+  async function onConfirmDelete() {
+    if (!pendingDelete || deleteBusy) return;
+    setDeleteBusy(true);
+    setDeleteError("");
+    try {
+      const res = await deleteRegistration({ data: { id: pendingDelete.id, confirm: true } });
+      setNotice(res.message);
+      setPendingDelete(null);
+      setProfile((current) => (current && current.id === pendingDelete.id ? null : current));
+      setSelected((prev) => {
+        const next = new Set(prev);
+        next.delete(pendingDelete.id);
+        return next;
+      });
+      await load();
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : "पंजीकरण नहीं हटाया जा सका।");
+    } finally {
+      setDeleteBusy(false);
+    }
+  }
+
   const qrValue = registerUrl;
 
   return (
@@ -210,12 +243,25 @@ export function AdminHome({ onLogout }: { onLogout: () => void }) {
             <p className="text-xs text-gold">{CAMP.foundation}</p>
             <h1 className="font-display text-xl">प्रशासन डैशबोर्ड</h1>
             <p className="text-sm text-saffron-soft">{CAMP.dateLine}</p>
+            {isSuperAdmin ? (
+              <p className="mt-1 inline-flex items-center gap-1 rounded-sm bg-gold/20 px-2 py-0.5 text-xs font-semibold text-gold">
+                <Shield className="size-3" aria-hidden="true" />
+                सुपर एडमिन
+              </p>
+            ) : null}
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button variant="secondary" size="sm" onClick={() => setShowPassword((open) => !open)}>
-              <KeyRound className="size-4" aria-hidden="true" />
-              पासवर्ड बदलें
-            </Button>
+            {isSuperAdmin ? (
+              <Button variant="secondary" size="sm" onClick={() => setShowSecurity((open) => !open)}>
+                <Shield className="size-4" aria-hidden="true" />
+                सुरक्षा
+              </Button>
+            ) : (
+              <Button variant="secondary" size="sm" onClick={() => setShowPassword((open) => !open)}>
+                <KeyRound className="size-4" aria-hidden="true" />
+                पासवर्ड बदलें
+              </Button>
+            )}
             <Button variant="secondary" size="sm" onClick={() => void onExport()}>
               <Download className="size-4" aria-hidden="true" />
               CSV
@@ -229,8 +275,18 @@ export function AdminHome({ onLogout }: { onLogout: () => void }) {
       </header>
 
       <main className="mx-auto max-w-6xl px-4 py-5">
-        {showPassword ? <AdminPasswordChangeForm onCancel={() => setShowPassword(false)} /> : null}
-        <div className={`grid grid-cols-2 gap-3 lg:grid-cols-3${showPassword ? " mt-5" : ""}`}>
+        {notice ? (
+          <p className="mb-4 rounded-md bg-success/12 px-3 py-2 text-sm text-success" role="status">
+            {notice}
+          </p>
+        ) : null}
+        {showPassword && !isSuperAdmin ? (
+          <AdminPasswordChangeForm onCancel={() => setShowPassword(false)} />
+        ) : null}
+        {showSecurity && isSuperAdmin ? <AdminSecurityPanel onClose={() => setShowSecurity(false)} /> : null}
+        <div
+          className={`grid grid-cols-2 gap-3 lg:grid-cols-3${showPassword || showSecurity ? " mt-5" : ""}`}
+        >
           <Stat label="कुल पंजीकरण" value={total} icon={<Users className="size-5" aria-hidden="true" />} />
           <Stat
             label="आज के पंजीकरण"
@@ -463,6 +519,7 @@ export function AdminHome({ onLogout }: { onLogout: () => void }) {
           error={error}
           filteredCount={rows.length}
           selected={selected}
+          canDelete={isSuperAdmin}
           onToggle={(id) => {
             setSelected((prev) => {
               const next = new Set(prev);
@@ -479,17 +536,34 @@ export function AdminHome({ onLogout }: { onLogout: () => void }) {
           }}
           onStatus={onStatus}
           onOpen={setProfile}
+          onDelete={setPendingDelete}
         />
       </main>
 
       {profile ? (
         <AdminPatientProfile
           row={profile}
+          canDelete={isSuperAdmin}
           onClose={() => setProfile(null)}
           onSaved={(next) => {
             mergeRow(next);
             void load();
           }}
+          onDelete={setPendingDelete}
+        />
+      ) : null}
+
+      {pendingDelete ? (
+        <AdminDeleteDialog
+          row={pendingDelete}
+          busy={deleteBusy}
+          error={deleteError}
+          onCancel={() => {
+            if (deleteBusy) return;
+            setPendingDelete(null);
+            setDeleteError("");
+          }}
+          onConfirm={() => void onConfirmDelete()}
         />
       ) : null}
     </div>

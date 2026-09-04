@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import type { AdminRole } from "@/lib/admin";
 import { adminLogout, checkAdminSession } from "@/lib/registrations.functions";
 import { AdminLogin } from "@/components/admin-login";
 import { AdminHome } from "@/components/admin-home";
@@ -8,6 +9,7 @@ export function AdminDashboard() {
   const [ready, setReady] = useState(false);
   const [authed, setAuthed] = useState(false);
   const [configured, setConfigured] = useState(true);
+  const [role, setRole] = useState<AdminRole>("admin");
 
   useEffect(() => {
     let cancelled = false;
@@ -16,6 +18,7 @@ export function AdminDashboard() {
         if (cancelled) return;
         setAuthed(res.authed);
         setConfigured(res.configured);
+        if (res.role) setRole(res.role);
       })
       .catch(() => {
         if (!cancelled) setAuthed(false);
@@ -40,7 +43,10 @@ export function AdminDashboard() {
     return (
       <AdminLogin
         configured={configured}
-        onSuccess={() => setAuthed(true)}
+        onSuccess={(nextRole) => {
+          setRole(nextRole);
+          setAuthed(true);
+        }}
         onRecovered={() => setConfigured(true)}
       />
     );
@@ -48,9 +54,11 @@ export function AdminDashboard() {
 
   return (
     <AdminHome
+      role={role}
       onLogout={async () => {
         await adminLogout();
         setAuthed(false);
+        setRole("admin");
       }}
     />
   );

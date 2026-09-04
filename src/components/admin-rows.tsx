@@ -5,7 +5,7 @@ import { saveRegistrationPdf, openPdfPreviewWindow, slipDetailsFromRow } from "@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { NativeSelect } from "@/components/ui/input";
-import { Download, LoaderCircle, Users } from "lucide-react";
+import { Download, LoaderCircle, Trash2, Users } from "lucide-react";
 
 function formatWhen(iso: string): string {
   const date = new Date(iso);
@@ -93,20 +93,24 @@ export function AdminRegistrationList({
   error,
   filteredCount,
   selected,
+  canDelete,
   onToggle,
   onToggleAll,
   onStatus,
   onOpen,
+  onDelete,
 }: {
   rows: RegistrationRow[];
   loading: boolean;
   error: string;
   filteredCount: number;
   selected: Set<number>;
+  canDelete?: boolean;
   onToggle: (id: number) => void;
   onToggleAll: () => void;
   onStatus: (id: number, next: string) => void;
   onOpen: (row: RegistrationRow) => void;
+  onDelete?: (row: RegistrationRow) => void;
 }) {
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
   const [downloadError, setDownloadError] = useState<{ id: number; message: string } | null>(null);
@@ -220,6 +224,17 @@ export function AdminRegistrationList({
                     >
                       PDF खोलें / सेव करें
                     </a>
+                  ) : null}
+                  {canDelete ? (
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      className="shrink-0"
+                      onClick={() => onDelete?.(row)}
+                    >
+                      <Trash2 className="size-4" aria-hidden="true" />
+                      हटाएँ
+                    </Button>
                   ) : null}
                   <button
                     type="button"

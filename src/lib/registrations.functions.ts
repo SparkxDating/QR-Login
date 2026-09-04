@@ -206,11 +206,20 @@ export const submitRegistration = createServerFn({ method: "POST" })
   });
 
 export const adminLogin = createServerFn({ method: "POST" })
-  .validator(z.object({ password: z.string().min(1, "पासवर्ड आवश्यक है") }))
+  .validator(
+    z.object({
+      username: z.string().max(80).optional(),
+      password: z.string().min(1, "पासवर्ड आवश्यक है"),
+    }),
+  )
   .handler(async ({ data }) => {
-    const { assertSameOriginWrite, clientKey, loginWithPassword } = await import(
-      "./admin-session.server"
-    );
+    const {
+      assertSameOriginWrite,
+      clientKey,
+      loginWithCredentials,
+      readAdminCookie,
+      readAdminSession,
+    } = await import("./admin-session.server");
     const { allowRequest } = await import("./rate-limit.server");
     const { setResponseStatus } = await import("@tanstack/react-start/server");
 
@@ -219,7 +228,7 @@ export const adminLogin = createServerFn({ method: "POST" })
       setResponseStatus(429);
       return { ok: false as const, error: "बहुत अधिक प्रयास। कुछ देर बाद कोशिश करें।" };
     }
-    const result = await loginWithPassword(data.password);
+    const result = await loginWithCredentials(data.username ?? "", data.password);
     if (result === "unconfigured") {
       return {
         ok: false as const,
@@ -232,7 +241,8 @@ export const adminLogin = createServerFn({ method: "POST" })
     if (result !== "ok") {
       return { ok: false as const, error: "पासवर्ड गलत है।" };
     }
-    return { ok: true as const };
+    const session = await readAdminSession(readAdminCookie());
+    return { ok: true as const, role: session?.role ?? ("admin" as const) };
   });
 
 export const adminLogout = createServerFn({ method: "POST" }).handler(async () => {
@@ -242,13 +252,14 @@ export const adminLogout = createServerFn({ method: "POST" }).handler(async () =
 });
 
 export const checkAdminSession = createServerFn({ method: "POST" }).handler(async () => {
-  const { readAdminCookie, verifyAdminToken, adminAuthConfigured } = await import(
+  const { readAdminCookie, readAdminSession, adminAuthConfigured } = await import(
     "./admin-session.server"
   );
-  const cookie = readAdminCookie();
+  const session = await readAdminSession(readAdminCookie());
   return {
-    authed: await verifyAdminToken(cookie),
+    authed: session !== null,
     configured: await adminAuthConfigured(),
+    role: session?.role ?? null,
   };
 });
 
@@ -432,4 +443,40 @@ export const exportRegistrationsCsv = createServerFn({ method: "POST" })
       params,
     );
     return { csv: registrationCsv(rows.map((row) => mapRow(row))) };
+  });
+
+export const deleteRegistration = createServerFn({ method: "POST" })
+  .validator(
+    z.object({
+      id: z.number().int().positive(),
+      confirm: z.literal(true),
+    }),
+  )
+  .handler(async ({ data }) => {
+    const { assertSameOriginWrite, clientKey, requireSuperAdmin, writeAudit } = await import(
+      "./admin-session.server"
+    );
+    const { allowRequest } = await import("./rate-limit.server");
+    const { getSql } = await import("./db");
+    const { setResponseStatus } = await import("@tanstack/react-start/server");
+
+    assertSameOriginWrite();
+    await requireSuperAdmin();
+    if (!allowRequest(clientKey("admin-delete"), 20, 15 * 60 * 1000)) {
+      setResponseStatus(429);
+      throw new Error("बहुत अधिक प्रयास। कुछ देर बाद कोशिश करें।");
+    }
+    const sql = await getSql();
+    const rows = await sql<{ registration_number: string }>`
+      delete from registrations
+      where id = ${data.id}
+      returning registration_number
+    `;
+    const row = rows[0];
+    if (!row) {
+      setResponseStatus(404);
+      throw new Error("पंजीकरण नहीं मिला");
+    }
+    await writeAudit("super_admin", "registration_delete", row.registration_number);
+    return { ok: true as const, message: "पंजीकरण सफलतापूर्वक हटाया गया।" };
   });

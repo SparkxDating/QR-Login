@@ -20,7 +20,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input, NativeSelect, Textarea } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Download, LoaderCircle, Printer, X } from "lucide-react";
+import { Download, LoaderCircle, Printer, Trash2, X } from "lucide-react";
 
 function formatWhen(iso: string): string {
   const date = new Date(iso);
@@ -86,12 +86,16 @@ function fromRow(row: RegistrationRow): FormState {
 
 export function AdminPatientProfile({
   row,
+  canDelete,
   onClose,
   onSaved,
+  onDelete,
 }: {
   row: RegistrationRow;
+  canDelete?: boolean;
   onClose: () => void;
   onSaved: (next: RegistrationRow) => void;
+  onDelete?: (row: RegistrationRow) => void;
 }) {
   const [form, setForm] = useState<FormState>(() => fromRow(row));
   const [editing, setEditing] = useState(false);
@@ -451,6 +455,12 @@ export function AdminPatientProfile({
                   )}
                   प्रिंट
                 </Button>
+                {canDelete ? (
+                  <Button variant="danger" size="sm" onClick={() => onDelete?.(row)}>
+                    <Trash2 className="size-4" aria-hidden="true" />
+                    हटाएँ
+                  </Button>
+                ) : null}
               </div>
             </>
           )}

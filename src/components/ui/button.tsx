@@ -13,6 +13,7 @@ const buttonVariants = cva(
           "bg-paper text-navy ring-1 ring-line hover:bg-cream active:scale-[0.98]",
         ghost: "bg-transparent text-maroon hover:bg-cream",
         navy: "bg-navy text-paper hover:bg-maroon-deep active:scale-[0.98]",
+        danger: "bg-danger text-paper hover:bg-maroon-deep active:scale-[0.98]",
       },
       size: {
         md: "min-h-12 rounded-md px-5 text-base",

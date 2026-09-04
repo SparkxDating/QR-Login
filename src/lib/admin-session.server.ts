@@ -12,6 +12,7 @@ import {
   setResponseHeader,
   setResponseStatus,
 } from "@tanstack/react-start/server";
+import { isAdminRole, type AdminRole } from "./admin";
 
 export const ADMIN_COOKIE = "tsf_admin";
 const TOKEN_TTL = "12h";
@@ -21,6 +22,8 @@ const SCRYPT_N = 16384;
 const SCRYPT_R = 8;
 const SCRYPT_P = 1;
 const SCRYPT_KEYLEN = 32;
+
+export type AdminSession = { role: AdminRole; epoch: number };
 
 type AdminAuthRow = { password_hash: string; session_epoch: number };
 
@@ -34,6 +37,33 @@ function recoveryCode(): string | null {
   const fromEnv = process.env.ADMIN_RECOVERY_CODE?.trim() ?? "";
   if (fromEnv.length < MIN_PASSWORD_LENGTH) return null;
   return fromEnv;
+}
+
+function superAdminUsername(): string | null {
+  const fromEnv = process.env.SUPER_ADMIN_USERNAME?.trim() ?? "";
+  return fromEnv.length > 0 ? fromEnv : null;
+}
+
+function superAdminPassword(): string | null {
+  const fromEnv = process.env.SUPER_ADMIN_PASSWORD?.trim() ?? "";
+  if (fromEnv.length < MIN_PASSWORD_LENGTH) return null;
+  return fromEnv;
+}
+
+export function superAdminConfigured(): boolean {
+  return superAdminUsername() !== null && superAdminPassword() !== null;
+}
+
+function superAdminStamp(): string {
+  const username = superAdminUsername() ?? "";
+  const password = superAdminPassword() ?? "";
+  return createHash("sha256").update(`sa:${username}:${password}`).digest("base64url").slice(0, 22);
+}
+
+function secretsMatch(input: string, expected: string): boolean {
+  const a = createHash("sha256").update(input).digest();
+  const b = createHash("sha256").update(expected).digest();
+  return timingSafeEqual(a, b);
 }
 
 function scryptKey(password: string, salt: Buffer, keylen: number, opts: { N: number; r: number; p: number }): Promise<Buffer> {
@@ -98,9 +128,9 @@ async function loadAdminAuth(): Promise<AdminAuthRow | null> {
     select password_hash, session_epoch from admin_auth where id = 1
   `;
   const row = rows[0];
-  if (!row?.password_hash) return null;
+  if (!row) return null;
   return {
-    password_hash: row.password_hash,
+    password_hash: row.password_hash ?? "",
     session_epoch: Number(row.session_epoch) || 0,
   };
 }
@@ -127,9 +157,10 @@ async function currentSessionEpoch(): Promise<number> {
 
 export async function adminAuthConfigured(): Promise<boolean> {
   if (adminPassword() !== null) return true;
+  if (superAdminConfigured()) return true;
   try {
     const row = await loadAdminAuth();
-    return Boolean(row?.password_hash);
+    return Boolean(row?.password_hash?.startsWith("scrypt$"));
   } catch {
     return false;
   }
@@ -192,26 +223,60 @@ export function clientKey(kind: string): string {
   return `${kind}:${ip}`;
 }
 
-export async function signAdminToken(epoch?: number): Promise<string> {
-  const sessionEpoch = epoch ?? (await currentSessionEpoch());
-  return new SignJWT({ role: "admin", epoch: sessionEpoch })
+export async function writeAudit(actorRole: string, action: string, detail = ""): Promise<void> {
+  try {
+    const { getSql } = await import("./db");
+    const sql = await getSql();
+    const ip = getRequestIP({ xForwardedFor: true }) ?? "";
+    const safeRole = actorRole.slice(0, 40);
+    const safeAction = action.slice(0, 80);
+    const safeDetail = detail.slice(0, 200);
+    const safeIp = ip.slice(0, 80);
+    await sql`
+      insert into admin_audit_log (actor_role, action, detail, ip)
+      values (${safeRole}, ${safeAction}, ${safeDetail}, ${safeIp})
+    `;
+  } catch {
+    // Audit must never block the primary action.
+  }
+}
+
+export async function signAdminToken(epochOrRole?: number | { epoch?: number; role?: AdminRole }): Promise<string> {
+  const opts = typeof epochOrRole === "number" || epochOrRole === undefined
+    ? { epoch: epochOrRole, role: "admin" as const }
+    : epochOrRole;
+  const role = opts.role ?? "admin";
+  const sessionEpoch = role === "admin" ? (opts.epoch ?? (await currentSessionEpoch())) : 0;
+  const payload: Record<string, unknown> = { role, epoch: sessionEpoch };
+  if (role === "super_admin") payload.stamp = superAdminStamp();
+  return new SignJWT(payload)
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime(TOKEN_TTL)
     .sign(await sessionSecret());
 }
 
-export async function verifyAdminToken(token: string | undefined): Promise<boolean> {
-  if (!token) return false;
+export async function readAdminSession(token: string | undefined): Promise<AdminSession | null> {
+  if (!token) return null;
   try {
     const { payload } = await jwtVerify(token, await sessionSecret());
-    if (payload.role !== "admin") return false;
+    if (!isAdminRole(payload.role)) return null;
+    if (payload.role === "super_admin") {
+      if (!superAdminConfigured()) return null;
+      if (payload.stamp !== superAdminStamp()) return null;
+      return { role: "super_admin", epoch: 0 };
+    }
     const epoch = await currentSessionEpoch();
     const tokenEpoch = typeof payload.epoch === "number" ? payload.epoch : 0;
-    return tokenEpoch === epoch;
+    if (tokenEpoch !== epoch) return null;
+    return { role: "admin", epoch };
   } catch {
-    return false;
+    return null;
   }
+}
+
+export async function verifyAdminToken(token: string | undefined): Promise<boolean> {
+  return (await readAdminSession(token)) !== null;
 }
 
 export function setAdminCookie(token: string): void {
@@ -236,7 +301,7 @@ async function verifyLoginPassword(password: string): Promise<"ok" | "unconfigur
   } catch {
     return "unavailable";
   }
-  if (stored?.password_hash) {
+  if (stored?.password_hash?.startsWith("scrypt$")) {
     const ok = await verifyPasswordHash(password, stored.password_hash);
     return ok ? "ok" : "invalid";
   }
@@ -248,14 +313,41 @@ async function verifyLoginPassword(password: string): Promise<"ok" | "unconfigur
   return passwordsMatch(password, expected) ? "ok" : "invalid";
 }
 
+export async function loginWithCredentials(
+  username: string,
+  password: string,
+): Promise<"ok" | "unconfigured" | "invalid" | "unavailable"> {
+  const uname = username.trim();
+  if (uname) {
+    const expectedUser = superAdminUsername() ?? "\0super-admin-unconfigured";
+    const expectedPass = superAdminPassword() ?? `\0${"x".repeat(MIN_PASSWORD_LENGTH)}`;
+    const userOk = secretsMatch(uname, expectedUser);
+    const passOk = secretsMatch(password, expectedPass);
+    if (!superAdminConfigured() || !userOk || !passOk) {
+      await writeAudit("unknown", "login_fail");
+      return "invalid";
+    }
+    const token = await signAdminToken({ role: "super_admin" });
+    setAdminCookie(token);
+    await writeAudit("super_admin", "login_success");
+    return "ok";
+  }
+
+  const result = await verifyLoginPassword(password);
+  if (result !== "ok") {
+    if (result === "invalid") await writeAudit("admin", "login_fail");
+    return result;
+  }
+  const token = await signAdminToken({ role: "admin" });
+  setAdminCookie(token);
+  await writeAudit("admin", "login_success");
+  return "ok";
+}
+
 export async function loginWithPassword(
   password: string,
 ): Promise<"ok" | "unconfigured" | "invalid" | "unavailable"> {
-  const result = await verifyLoginPassword(password);
-  if (result !== "ok") return result;
-  const token = await signAdminToken();
-  setAdminCookie(token);
-  return "ok";
+  return loginWithCredentials("", password);
 }
 
 export async function changeAdminPassword(
@@ -268,8 +360,9 @@ export async function changeAdminPassword(
   if (current !== "ok") return current === "unconfigured" ? "invalid" : current;
   try {
     const epoch = await savePasswordHash(await hashPassword(newPassword));
-    const token = await signAdminToken(epoch);
+    const token = await signAdminToken({ epoch, role: "admin" });
     setAdminCookie(token);
+    await writeAudit("admin", "password_change");
     return "ok";
   } catch {
     return "unavailable";
@@ -286,25 +379,118 @@ export async function recoverAdminPassword(
   try {
     await savePasswordHash(await hashPassword(newPassword));
     clearAdminCookie();
+    await writeAudit("admin", "password_recover");
     return "ok";
   } catch {
     return "unavailable";
   }
 }
 
+export async function resetAdminPassword(
+  newPassword: string,
+): Promise<"ok" | "weak" | "unavailable"> {
+  if (!passwordStrength(newPassword)) return "weak";
+  try {
+    await savePasswordHash(await hashPassword(newPassword));
+    await writeAudit("super_admin", "password_reset");
+    return "ok";
+  } catch {
+    return "unavailable";
+  }
+}
+
+export async function logoutAllAdminSessions(): Promise<"ok" | "unavailable"> {
+  try {
+    const { getSql } = await import("./db");
+    const sql = await getSql();
+    await sql`
+      insert into admin_auth (id, password_hash, session_epoch, updated_at)
+      values (1, '', 1, now())
+      on conflict (id) do update set
+        session_epoch = admin_auth.session_epoch + 1,
+        updated_at = now()
+    `;
+    await writeAudit("super_admin", "logout_all");
+    return "ok";
+  } catch {
+    return "unavailable";
+  }
+}
+
+export async function listAdminAccounts(): Promise<
+  { username: string; role: AdminRole; source: "database" | "environment"; passwordSet: boolean }[]
+> {
+  const stored = await loadAdminAuth();
+  const accounts: { username: string; role: AdminRole; source: "database" | "environment"; passwordSet: boolean }[] = [
+    {
+      username: "admin",
+      role: "admin",
+      source: stored?.password_hash?.startsWith("scrypt$") ? "database" : "environment",
+      passwordSet: Boolean(stored?.password_hash?.startsWith("scrypt$") || adminPassword()),
+    },
+  ];
+  if (superAdminConfigured()) {
+    accounts.unshift({
+      username: superAdminUsername() ?? "super_admin",
+      role: "super_admin",
+      source: "environment",
+      passwordSet: true,
+    });
+  }
+  return accounts;
+}
+
+export async function listAuditLogs(limit = 100): Promise<
+  { id: number; actorRole: string; action: string; detail: string; ip: string; createdAt: string }[]
+> {
+  const { getSql } = await import("./db");
+  const sql = await getSql();
+  const rows = await sql<{
+    id: number;
+    actor_role: string;
+    action: string;
+    detail: string;
+    ip: string;
+    created_at: string | Date;
+  }>`
+    select id, actor_role, action, detail, ip, created_at
+    from admin_audit_log
+    order by created_at desc, id desc
+    limit ${Math.min(Math.max(limit, 1), 200)}
+  `;
+  return rows.map((row) => ({
+    id: Number(row.id),
+    actorRole: row.actor_role,
+    action: row.action,
+    detail: row.detail ?? "",
+    ip: row.ip ?? "",
+    createdAt: row.created_at instanceof Date ? row.created_at.toISOString() : String(row.created_at),
+  }));
+}
+
 export function readAdminCookie(): string | undefined {
   return getCookie(ADMIN_COOKIE);
 }
 
-export async function requireAdmin(): Promise<void> {
+export async function requireAdmin(): Promise<AdminSession> {
   setResponseHeader("cache-control", "no-store");
   setResponseHeader("vary", "Cookie");
   const cookie = getCookie(ADMIN_COOKIE);
-  const ok = await verifyAdminToken(cookie);
-  if (!ok) {
+  const session = await readAdminSession(cookie);
+  if (!session) {
     setResponseStatus(401);
     throw new Error("प्रशासन लॉगिन आवश्यक है");
   }
+  return session;
+}
+
+export async function requireSuperAdmin(): Promise<AdminSession> {
+  const session = await requireAdmin();
+  if (session.role !== "super_admin") {
+    setResponseStatus(403);
+    throw new Error("यह कार्य केवल सुपर एडमिन कर सकते हैं।");
+  }
+  return session;
 }
 
 export function requestUrl(): URL {

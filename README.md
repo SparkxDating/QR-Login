@@ -33,6 +33,8 @@ The GitHub repo is already Vercel-ready (Nitro `vercel` preset + `vercel.json`).
 | `DATABASE_URL` | **Yes** on Vercel | Neon/Postgres. Without it, registrations do not persist. |
 | `ADMIN_SESSION_SECRET` | Optional | Cookie signing secret |
 | `ADMIN_RECOVERY_CODE` | Optional | Min 8 characters. Forgot-password recovery. Never commit a real value. |
+| `SUPER_ADMIN_USERNAME` | Optional | Super Admin username. Empty in `.env.example`. |
+| `SUPER_ADMIN_PASSWORD` | Optional | Super Admin password, min 8 characters. Empty in `.env.example`. |
 
 4. Easiest database: Vercel dashboard → Storage → **Neon** → create, then it fills `DATABASE_URL`.
 5. Deploy. Public form is `https://YOUR-PROJECT.vercel.app/register`. Admin is `/admin`.
@@ -55,9 +57,13 @@ npm run dev
 | `ADMIN_PASSWORD` | **Yes** for `/admin` | Initial admin login. After a password change, the stored hash is used. |
 | `ADMIN_SESSION_SECRET` | Optional | Session signing secret |
 | `ADMIN_RECOVERY_CODE` | Optional | Forgot-password recovery code. Empty in `.env.example`. |
+| `SUPER_ADMIN_USERNAME` | Optional | Super Admin username. Empty in `.env.example`. |
+| `SUPER_ADMIN_PASSWORD` | Optional | Super Admin password. Empty in `.env.example`. |
 | `DATABASE_URL` | On deploy | Postgres connection string |
 
 There is **no default admin password**. If `ADMIN_PASSWORD` is unset and no hashed password has been saved yet, admin login is disabled.
+
+Super Admin uses `SUPER_ADMIN_USERNAME` + `SUPER_ADMIN_PASSWORD`. That role can delete registrations, reset the regular admin password, view activity logs, and log out all admin sessions. Regular admin cannot.
 
 ## Scripts
 
