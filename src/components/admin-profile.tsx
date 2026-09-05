@@ -20,6 +20,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input, NativeSelect, Textarea } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { StatusBadge } from "@/components/admin-rows";
 import { Download, LoaderCircle, Printer, Trash2, X } from "lucide-react";
 
 function formatWhen(iso: string): string {
@@ -201,7 +202,7 @@ export function AdminPatientProfile({
     try {
       await printRegistrationPdf(row.registrationNumber, slipDetailsFromRow(row));
     } catch {
-      setError("प्रिंट नहीं हो सका। कृपया पुनः प्रास करें।");
+      setError("प्रिंट नहीं हो सका। कृपया पुनः प्रयास करें।");
     } finally {
       setPdfBusy(null);
     }
@@ -221,13 +222,16 @@ export function AdminPatientProfile({
         aria-labelledby="patient-profile-title"
         onClick={(event) => event.stopPropagation()}
       >
+        <div className="h-1 bg-maroon" aria-hidden="true" />
         <header className="sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-line bg-paper px-4 py-3">
           <div className="min-w-0">
             <p className="tabular-nums text-sm font-semibold text-maroon">{row.registrationNumber}</p>
             <h2 id="patient-profile-title" className="font-display text-xl text-navy">
               {row.name}
             </h2>
-            <p className="text-sm text-muted">{statusLabel(row.status)}</p>
+            <div className="mt-1">
+              <StatusBadge status={row.status} />
+            </div>
           </div>
           <Button variant="secondary" size="sm" onClick={onClose} aria-label="बंद करें">
             <X className="size-4" aria-hidden="true" />
