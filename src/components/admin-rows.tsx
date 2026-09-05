@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, type ComponentProps, type ReactNode } from "react";
 import { OTHER_STATUSES, WORKFLOW_STATUSES, statusLabel } from "@/lib/camp";
 import { duplicateLabel, type RegistrationRow } from "@/lib/registrations";
 import {
@@ -23,6 +23,14 @@ function formatWhen(iso: string): string {
   }).format(date);
 }
 
+const TONE = {
+  maroon: "bg-maroon/10 text-maroon",
+  navy: "bg-navy/10 text-navy",
+  saffron: "bg-saffron/15 text-saffron-deep",
+  success: "bg-success/12 text-success",
+  info: "bg-info/10 text-info",
+} as const;
+
 export function Stat({
   label,
   value,
@@ -30,6 +38,7 @@ export function Stat({
   suffix,
   hint,
   trend,
+  tone = "maroon",
 }: {
   label: string;
   value: number | string;
@@ -37,13 +46,14 @@ export function Stat({
   suffix?: string;
   hint?: string;
   trend?: { label: string; tone?: "success" | "muted" | "warn" };
+  tone?: keyof typeof TONE;
 }) {
   const trendClass =
     trend?.tone === "success" ? "text-success" : trend?.tone === "warn" ? "text-saffron" : "text-muted";
   return (
-    <div className="rounded-xl border border-line bg-paper p-4 shadow-[var(--shadow-card)]">
+    <div className="rounded-xl bg-paper p-4 shadow-[var(--shadow-card)]">
       <div className="flex items-start justify-between gap-3">
-        <div className="flex size-10 items-center justify-center rounded-md bg-maroon/10 text-maroon">
+        <div className={`flex size-10 items-center justify-center rounded-md ${TONE[tone]}`}>
           {icon ?? <Users className="size-5" aria-hidden="true" />}
         </div>
         {trend ? (
@@ -113,6 +123,24 @@ export function StatusSelect({
         ))}
       </optgroup>
     </NativeSelect>
+  );
+}
+
+function ActionButton({
+  label,
+  compact,
+  children,
+  ...props
+}: {
+  label: string;
+  compact?: boolean;
+  children: ReactNode;
+} & ComponentProps<typeof Button>) {
+  return (
+    <Button size="sm" className={compact ? "min-h-10 gap-1 px-2.5" : undefined} aria-label={label} {...props}>
+      {children}
+      <span className={compact ? "hidden xl:inline" : undefined}>{label}</span>
+    </Button>
   );
 }
 
@@ -199,6 +227,62 @@ export function AdminRegistrationList({
 
   const allSelected = rows.length > 0 && rows.every((row) => selected.has(row.id));
 
+  function actions(row: RegistrationRow, compact?: boolean) {
+    return (
+      <div className="flex flex-wrap gap-1.5">
+        <ActionButton label="देखें" compact={compact} variant="secondary" onClick={() => onOpen(row)}>
+          <Eye className="size-4" aria-hidden="true" />
+        </ActionButton>
+        <ActionButton
+          label="PDF"
+          compact={compact}
+          variant="navy"
+          disabled={busyId !== null}
+          onClick={() => void onDownloadSlip(row)}
+        >
+          {busyId === row.id ? (
+            <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+          ) : (
+            <Download className="size-4" aria-hidden="true" />
+          )}
+        </ActionButton>
+        <ActionButton
+          label="प्रिंट"
+          compact={compact}
+          variant="secondary"
+          disabled={busyId !== null}
+          onClick={() => void onPrintSlip(row)}
+        >
+          <Printer className="size-4" aria-hidden="true" />
+        </ActionButton>
+        {canDelete ? (
+          <ActionButton label="हटाएँ" compact={compact} variant="danger" onClick={() => onDelete?.(row)}>
+            <Trash2 className="size-4" aria-hidden="true" />
+          </ActionButton>
+        ) : null}
+      </div>
+    );
+  }
+
+  function extras(row: RegistrationRow) {
+    return (
+      <>
+        {downloadError?.id === row.id ? (
+          <p className="mt-2 text-xs text-danger">{downloadError.message}</p>
+        ) : null}
+        {openPdf?.id === row.id ? (
+          <a
+            href={openPdf.url}
+            target="_blank"
+            className="mt-2 inline-block text-xs font-semibold text-maroon hover:underline"
+          >
+            PDF खोलें / सेव करें
+          </a>
+        ) : null}
+      </>
+    );
+  }
+
   return (
     <div className="mt-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
@@ -206,7 +290,7 @@ export function AdminRegistrationList({
           दिखाए गए: <span className="tabular-nums font-semibold text-navy">{filteredCount}</span>
         </p>
         {rows.length > 0 ? (
-          <label className="flex min-h-10 items-center gap-2 text-sm text-navy">
+          <label className="flex min-h-11 items-center gap-2 text-sm text-navy">
             <input
               type="checkbox"
               className="size-4 accent-saffron"
@@ -230,117 +314,136 @@ export function AdminRegistrationList({
           <p className="text-center text-muted">कोई पंजीकरण नहीं मिला।</p>
         </Card>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-line bg-paper shadow-[var(--shadow-card)]">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[52rem] border-separate border-spacing-0 text-left text-sm">
-              <thead>
-                <tr className="bg-cream text-xs font-semibold tracking-wide text-muted">
-                  <th className="sticky left-0 bg-cream px-3 py-3 font-semibold"> </th>
-                  <th className="px-3 py-3 font-semibold">पंजीकरण संख्या</th>
-                  <th className="px-3 py-3 font-semibold">रोगी का नाम</th>
-                  <th className="px-3 py-3 font-semibold">मोबाइल</th>
-                  <th className="px-3 py-3 font-semibold">ग्राम</th>
-                  <th className="px-3 py-3 font-semibold">ब्लॉक</th>
-                  <th className="px-3 py-3 font-semibold">पंजीकरण तिथि</th>
-                  <th className="px-3 py-3 font-semibold">स्थिति</th>
-                  <th className="px-3 py-3 font-semibold">कार्य</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row) => (
-                  <tr key={row.id} className="bg-paper hover:bg-cream/80">
-                    <td className="sticky left-0 border-t border-line bg-paper px-3 py-3">
-                      <input
-                        type="checkbox"
-                        className="size-4 accent-saffron"
-                        checked={selected.has(row.id)}
-                        onChange={() => onToggle(row.id)}
-                        aria-label={`${row.name} चुनें`}
-                      />
-                    </td>
-                    <td className="border-t border-line px-3 py-3 font-semibold tabular-nums text-maroon">
-                      {row.registrationNumber}
-                    </td>
-                    <td className="border-t border-line px-3 py-3">
-                      <button
-                        type="button"
-                        className="text-left font-medium text-navy hover:underline"
-                        onClick={() => onOpen(row)}
-                      >
-                        {row.name}
-                      </button>
-                      {row.duplicate ? (
-                        <p className="mt-1 text-xs text-maroon">{duplicateLabel(row.duplicate)}</p>
-                      ) : null}
-                    </td>
-                    <td className="border-t border-line px-3 py-3 tabular-nums text-navy">{row.mobile}</td>
-                    <td className="border-t border-line px-3 py-3 text-navy">{row.village}</td>
-                    <td className="border-t border-line px-3 py-3 text-navy">{row.block}</td>
-                    <td className="border-t border-line px-3 py-3 text-muted">{formatWhen(row.createdAt)}</td>
-                    <td className="border-t border-line px-3 py-3">
-                      <div className="grid gap-2">
-                        <StatusBadge status={row.status} />
-                        <StatusSelect
-                          className="min-h-10 min-w-40"
-                          value={row.status}
-                          onChange={(next) => void onStatus(row.id, next)}
-                        />
-                      </div>
-                    </td>
-                    <td className="border-t border-line px-3 py-3">
-                      <div className="flex flex-wrap gap-1.5">
-                        <Button variant="secondary" size="sm" onClick={() => onOpen(row)}>
-                          <Eye className="size-4" aria-hidden="true" />
-                          देखें
-                        </Button>
-                        <Button
-                          variant="navy"
-                          size="sm"
-                          disabled={busyId !== null}
-                          onClick={() => void onDownloadSlip(row)}
-                        >
-                          {busyId === row.id ? (
-                            <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
-                          ) : (
-                            <Download className="size-4" aria-hidden="true" />
-                          )}
-                          PDF
-                        </Button>
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          disabled={busyId !== null}
-                          onClick={() => void onPrintSlip(row)}
-                        >
-                          <Printer className="size-4" aria-hidden="true" />
-                          प्रिंट
-                        </Button>
-                        {canDelete ? (
-                          <Button variant="danger" size="sm" onClick={() => onDelete?.(row)}>
-                            <Trash2 className="size-4" aria-hidden="true" />
-                            हटाएँ
-                          </Button>
-                        ) : null}
-                      </div>
-                      {downloadError?.id === row.id ? (
-                        <p className="mt-2 text-xs text-danger">{downloadError.message}</p>
-                      ) : null}
-                      {openPdf?.id === row.id ? (
-                        <a
-                          href={openPdf.url}
-                          target="_blank"
-                          className="mt-2 inline-block text-xs font-semibold text-maroon hover:underline"
-                        >
-                          PDF खोलें / सेव करें
-                        </a>
-                      ) : null}
-                    </td>
+        <>
+          <ul className="grid gap-3 md:hidden">
+            {rows.map((row) => (
+              <li key={row.id} className="rounded-xl bg-paper p-4 shadow-[var(--shadow-card)]">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="tabular-nums text-sm font-semibold text-maroon">{row.registrationNumber}</p>
+                    <button
+                      type="button"
+                      className="mt-0.5 text-left font-medium text-navy hover:underline"
+                      onClick={() => onOpen(row)}
+                    >
+                      {row.name}
+                    </button>
+                    {row.duplicate ? (
+                      <p className="mt-1 text-xs text-maroon">{duplicateLabel(row.duplicate)}</p>
+                    ) : null}
+                  </div>
+                  <label className="flex min-h-11 min-w-11 items-start justify-end">
+                    <input
+                      type="checkbox"
+                      className="size-4 accent-saffron"
+                      checked={selected.has(row.id)}
+                      onChange={() => onToggle(row.id)}
+                      aria-label={`${row.name} चुनें`}
+                    />
+                  </label>
+                </div>
+                <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1 text-sm">
+                  <div>
+                    <dt className="text-xs text-muted">मोबाइल</dt>
+                    <dd className="tabular-nums text-navy">{row.mobile}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-muted">ब्लॉक</dt>
+                    <dd className="text-navy">{row.block}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-muted">ग्राम</dt>
+                    <dd className="text-navy">{row.village}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-muted">तिथि</dt>
+                    <dd className="text-muted">{formatWhen(row.createdAt)}</dd>
+                  </div>
+                </dl>
+                <div className="mt-3 grid gap-2">
+                  <StatusBadge status={row.status} />
+                  <StatusSelect
+                    className="min-h-11"
+                    value={row.status}
+                    onChange={(next) => void onStatus(row.id, next)}
+                  />
+                </div>
+                <div className="mt-3">
+                  {actions(row)}
+                  {extras(row)}
+                </div>
+              </li>
+            ))}
+          </ul>
+
+          <div className="hidden overflow-hidden rounded-xl bg-paper shadow-[var(--shadow-card)] md:block">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[48rem] border-separate border-spacing-0 text-left text-sm">
+                <thead>
+                  <tr className="bg-cream text-xs font-semibold tracking-wide text-muted">
+                    <th className="sticky left-0 bg-cream px-3 py-3 font-semibold"> </th>
+                    <th className="px-3 py-3 font-semibold">पंजीकरण संख्या</th>
+                    <th className="px-3 py-3 font-semibold">रोगी का नाम</th>
+                    <th className="px-3 py-3 font-semibold">मोबाइल</th>
+                    <th className="px-3 py-3 font-semibold">ग्राम</th>
+                    <th className="px-3 py-3 font-semibold">ब्लॉक</th>
+                    <th className="px-3 py-3 font-semibold">पंजीकरण तिथि</th>
+                    <th className="px-3 py-3 font-semibold">स्थिति</th>
+                    <th className="px-3 py-3 font-semibold">कार्य</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {rows.map((row) => (
+                    <tr key={row.id} className="bg-paper hover:bg-cream/70">
+                      <td className="sticky left-0 border-t border-line bg-paper px-3 py-3">
+                        <input
+                          type="checkbox"
+                          className="size-4 accent-saffron"
+                          checked={selected.has(row.id)}
+                          onChange={() => onToggle(row.id)}
+                          aria-label={`${row.name} चुनें`}
+                        />
+                      </td>
+                      <td className="border-t border-line px-3 py-3 font-semibold tabular-nums text-maroon">
+                        {row.registrationNumber}
+                      </td>
+                      <td className="border-t border-line px-3 py-3">
+                        <button
+                          type="button"
+                          className="text-left font-medium text-navy hover:underline"
+                          onClick={() => onOpen(row)}
+                        >
+                          {row.name}
+                        </button>
+                        {row.duplicate ? (
+                          <p className="mt-1 text-xs text-maroon">{duplicateLabel(row.duplicate)}</p>
+                        ) : null}
+                      </td>
+                      <td className="border-t border-line px-3 py-3 tabular-nums text-navy">{row.mobile}</td>
+                      <td className="border-t border-line px-3 py-3 text-navy">{row.village}</td>
+                      <td className="border-t border-line px-3 py-3 text-navy">{row.block}</td>
+                      <td className="border-t border-line px-3 py-3 text-muted">{formatWhen(row.createdAt)}</td>
+                      <td className="border-t border-line px-3 py-3">
+                        <div className="grid gap-2">
+                          <StatusBadge status={row.status} />
+                          <StatusSelect
+                            className="min-h-10 min-w-40"
+                            value={row.status}
+                            onChange={(next) => void onStatus(row.id, next)}
+                          />
+                        </div>
+                      </td>
+                      <td className="border-t border-line px-3 py-3">
+                        {actions(row, true)}
+                        {extras(row)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );
