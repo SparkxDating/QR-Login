@@ -1,6 +1,6 @@
 import { type ReactNode } from "react";
-import { statusLabel } from "@/lib/camp";
 import { Card } from "@/components/ui/card";
+import { tStatus, useDashboardI18n } from "@/components/dashboard-locale";
 
 function ChartCard({
   title,
@@ -29,12 +29,14 @@ function ChartCard({
 
 function BarList({
   items,
+  empty,
 }: {
   items: { key: string; label: string; n: number }[];
+  empty: string;
 }) {
   const max = Math.max(1, ...items.map((item) => item.n));
   if (items.length === 0) {
-    return <p className="text-sm text-muted">अभी आँकड़े उपलब्ध नहीं हैं।</p>;
+    return <p className="text-sm text-muted">{empty}</p>;
   }
   return (
     <ul className="grid max-h-80 gap-2.5 overflow-y-auto pr-1">
@@ -56,10 +58,10 @@ function BarList({
   );
 }
 
-function formatDay(day: string): string {
+function formatDay(day: string, locale: string): string {
   const date = new Date(`${day}T00:00:00+05:30`);
   if (Number.isNaN(date.getTime())) return day;
-  return new Intl.DateTimeFormat("hi-IN", {
+  return new Intl.DateTimeFormat(locale, {
     timeZone: "Asia/Kolkata",
     day: "2-digit",
     month: "short",
@@ -75,19 +77,25 @@ export function AdminAnalytics({
   byBlock: { block: string; n: number }[];
   byStatus: { status: string; n: number }[];
 }) {
+  const { t, locale } = useDashboardI18n();
+  const empty = t("analytics.empty");
   return (
     <section className="mt-5 grid gap-3 lg:grid-cols-3">
-      <ChartCard title="पंजीकरण तिथि अनुसार" accent="saffron">
-        <BarList items={byDate.map((row) => ({ key: row.day, label: formatDay(row.day), n: row.n }))} />
-      </ChartCard>
-      <ChartCard title="ब्लॉक अनुसार" accent="navy">
-        <BarList items={byBlock.map((row) => ({ key: row.block, label: row.block, n: row.n }))} />
-      </ChartCard>
-      <ChartCard title="स्थिति वितरण" accent="maroon">
+      <ChartCard title={t("analytics.byDate")} accent="saffron">
         <BarList
+          empty={empty}
+          items={byDate.map((row) => ({ key: row.day, label: formatDay(row.day, locale), n: row.n }))}
+        />
+      </ChartCard>
+      <ChartCard title={t("analytics.byBlock")} accent="navy">
+        <BarList empty={empty} items={byBlock.map((row) => ({ key: row.block, label: row.block, n: row.n }))} />
+      </ChartCard>
+      <ChartCard title={t("analytics.byStatus")} accent="maroon">
+        <BarList
+          empty={empty}
           items={byStatus.map((row) => ({
             key: row.status,
-            label: statusLabel(row.status),
+            label: tStatus(t, row.status),
             n: row.n,
           }))}
         />
@@ -115,6 +123,8 @@ export function VisitAnalytics({
     1,
     ...visitsVsRegistrations.flatMap((row) => [row.visits, row.registrations]),
   );
+  const { t, locale } = useDashboardI18n();
+  const empty = t("analytics.empty");
   const visitRows = [...visitsByDay].reverse();
   const regRows = [...registrationsByDay].reverse();
   const compareRows = [...visitsVsRegistrations].reverse();
@@ -123,22 +133,24 @@ export function VisitAnalytics({
   return (
     <section className="mt-5 grid gap-3">
       <div className="grid gap-3 md:grid-cols-2">
-        <ChartCard title="समय के साथ विज़िट" hint="नवीनतम पहले" accent="navy">
+        <ChartCard title={t("analytics.visitsOverTime")} hint={t("analytics.newestFirst")} accent="navy">
           <VisitBarList
+            empty={empty}
             items={visitRows.map((row) => ({
               key: row.day,
-              label: formatVisitDay(row.day),
+              label: formatVisitDay(row.day, locale),
               n: row.n,
             }))}
             max={maxVisit}
             tone="navy"
           />
         </ChartCard>
-        <ChartCard title="समय के साथ पंजीकरण" hint="नवीनतम पहले" accent="saffron">
+        <ChartCard title={t("analytics.regsOverTime")} hint={t("analytics.newestFirst")} accent="saffron">
           <VisitBarList
+            empty={empty}
             items={regRows.map((row) => ({
               key: row.day,
-              label: formatVisitDay(row.day),
+              label: formatVisitDay(row.day, locale),
               n: row.n,
             }))}
             max={maxReg}
@@ -147,27 +159,27 @@ export function VisitAnalytics({
         </ChartCard>
       </div>
 
-      <ChartCard title="विज़िट बनाम पंजीकरण" hint="उसी दिन की तुलना · नवीनतम पहले" accent="maroon">
+      <ChartCard title={t("analytics.visitsVsRegs")} hint={t("analytics.compareHint")} accent="maroon">
         <ul className="mb-4 flex flex-wrap gap-4 text-xs text-muted">
           <li className="flex items-center gap-1.5">
             <span className="size-2.5 rounded-full bg-navy" aria-hidden="true" />
-            विज़िट
+            {t("analytics.visits")}
           </li>
           <li className="flex items-center gap-1.5">
             <span className="size-2.5 rounded-full bg-saffron" aria-hidden="true" />
-            पंजीकरण
+            {t("analytics.registrations")}
           </li>
         </ul>
         {compareRows.length === 0 ? (
-          <p className="text-sm text-muted">अभी आँकड़े उपलब्ध नहीं हैं।</p>
+          <p className="text-sm text-muted">{empty}</p>
         ) : (
           <ul className="grid max-h-96 gap-2 overflow-y-auto pr-1">
             {compareRows.map((row) => (
               <li key={row.day} className="min-w-0 rounded-lg bg-cream px-3 py-2.5">
-                <p className="mb-2 text-sm font-medium text-navy">{formatVisitDay(row.day)}</p>
+                <p className="mb-2 text-sm font-medium text-navy">{formatVisitDay(row.day, locale)}</p>
                 <div className="grid gap-1.5">
-                  <CompareBar label="विज़िट" value={row.visits} max={maxDual} tone="navy" />
-                  <CompareBar label="पंजीकरण" value={row.registrations} max={maxDual} tone="saffron" />
+                  <CompareBar label={t("analytics.visits")} value={row.visits} max={maxDual} tone="navy" />
+                  <CompareBar label={t("analytics.registrations")} value={row.registrations} max={maxDual} tone="saffron" />
                 </div>
               </li>
             ))}
@@ -176,21 +188,21 @@ export function VisitAnalytics({
       </ChartCard>
 
       {detailed && tableRows.length > 0 ? (
-        <ChartCard title="विस्तृत आँकड़े" hint="Super Admin · दैनिक योग, बिना आगंतुक पहचान" accent="maroon">
+        <ChartCard title={t("analytics.detailed")} hint={t("analytics.detailedHint")} accent="maroon">
           <div className="-mx-2 overflow-x-auto px-2 sm:mx-0 sm:px-0">
             <table className="w-full min-w-[28rem] text-left text-sm">
               <thead>
                 <tr className="bg-cream text-xs font-semibold tracking-wide text-muted">
-                  <th className="rounded-l-md px-3 py-2 font-semibold">तिथि</th>
-                  <th className="px-3 py-2 font-semibold">विज़िट</th>
-                  <th className="px-3 py-2 font-semibold">अद्वितीय (अनुमान)</th>
-                  <th className="rounded-r-md px-3 py-2 font-semibold">पंजीकरण</th>
+                  <th className="rounded-l-md px-3 py-2 font-semibold">{t("analytics.date")}</th>
+                  <th className="px-3 py-2 font-semibold">{t("analytics.visits")}</th>
+                  <th className="px-3 py-2 font-semibold">{t("analytics.uniqueEst")}</th>
+                  <th className="rounded-r-md px-3 py-2 font-semibold">{t("analytics.registrations")}</th>
                 </tr>
               </thead>
               <tbody>
                 {tableRows.map((row) => (
                   <tr key={row.day} className="border-t border-line hover:bg-cream/70">
-                    <td className="px-3 py-2 text-navy">{formatVisitDay(row.day)}</td>
+                    <td className="px-3 py-2 text-navy">{formatVisitDay(row.day, locale)}</td>
                     <td className="px-3 py-2 tabular-nums text-navy">{row.visits}</td>
                     <td className="px-3 py-2 tabular-nums text-navy">{row.uniques}</td>
                     <td className="px-3 py-2 tabular-nums text-navy">{row.registrations}</td>
@@ -205,10 +217,10 @@ export function VisitAnalytics({
   );
 }
 
-function formatVisitDay(day: string): string {
+function formatVisitDay(day: string, locale: string): string {
   const date = new Date(`${day}T00:00:00+05:30`);
   if (Number.isNaN(date.getTime())) return day;
-  return new Intl.DateTimeFormat("en-IN", {
+  return new Intl.DateTimeFormat(locale, {
     timeZone: "Asia/Kolkata",
     weekday: "short",
     day: "numeric",
@@ -249,13 +261,15 @@ function VisitBarList({
   items,
   max,
   tone,
+  empty,
 }: {
   items: { key: string; label: string; n: number }[];
   max: number;
   tone: "navy" | "saffron";
+  empty: string;
 }) {
   if (items.length === 0) {
-    return <p className="text-sm text-muted">अभी आँकड़े उपलब्ध नहीं हैं।</p>;
+    return <p className="text-sm text-muted">{empty}</p>;
   }
   const fill = tone === "navy" ? "bg-navy" : "bg-saffron";
   return (

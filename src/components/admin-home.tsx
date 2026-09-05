@@ -25,6 +25,7 @@ import { AdminRegistrationList, Stat, StatusSelect } from "@/components/admin-ro
 import { AdminPasswordChangeForm } from "@/components/admin-password";
 import { AdminSecurityPanel } from "@/components/admin-security";
 import { AdminShell, SectionTitle, type AdminSection } from "@/components/admin-shell";
+import { tStatus, useDashboardI18n } from "@/components/dashboard-locale";
 import {
   CalendarDays,
   CheckCircle2,
@@ -66,6 +67,7 @@ function downloadTextFile(contents: string, filename: string, type: string) {
 }
 
 export function AdminHome({ role, onLogout }: { role: AdminRole; onLogout: () => void }) {
+  const { t } = useDashboardI18n();
   const [sessionRole, setSessionRole] = useState<AdminRole>(role);
   const isSuperAdmin = sessionRole === "super_admin";
   const [filters, setFilters] = useState<AdminListFilters>(emptyFilters);
@@ -152,11 +154,11 @@ export function AdminHome({ role, onLogout }: { role: AdminRole; onLogout: () =>
         return next;
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "डेटा नहीं मिल सका");
+      setError(err instanceof Error ? err.message : t("error.loadData"));
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, [filters, t]);
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -224,7 +226,7 @@ export function AdminHome({ role, onLogout }: { role: AdminRole; onLogout: () =>
       );
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "स्थिति नहीं बदली जा सकी।");
+      setError(err instanceof Error ? err.message : t("error.status"));
     } finally {
       setBulkBusy(false);
     }
@@ -238,7 +240,7 @@ export function AdminHome({ role, onLogout }: { role: AdminRole; onLogout: () =>
   async function onBulkPdf() {
     if (bulkBusy || selectedRows.length === 0) return;
     if (selectedRows.length > 12) {
-      setError("एक साथ अधिकतम 12 स्लिप PDF बनाएँ।");
+      setError(t("error.maxPdfs"));
       return;
     }
     setBulkBusy(true);
@@ -248,7 +250,7 @@ export function AdminHome({ role, onLogout }: { role: AdminRole; onLogout: () =>
         await saveRegistrationPdf(row.registrationNumber, slipDetailsFromRow(row));
       }
     } catch {
-      setError("कुछ स्लिप PDF नहीं बन सकीं। कृपया पुनः प्रयास करें।");
+      setError(t("error.somePdfs"));
     } finally {
       setBulkBusy(false);
     }
@@ -270,7 +272,7 @@ export function AdminHome({ role, onLogout }: { role: AdminRole; onLogout: () =>
       });
       await load();
     } catch (err) {
-      setDeleteError(err instanceof Error ? err.message : "पंजीकरण नहीं हटाया जा सका।");
+      setDeleteError(err instanceof Error ? err.message : t("error.delete"));
     } finally {
       setDeleteBusy(false);
     }
@@ -306,73 +308,77 @@ export function AdminHome({ role, onLogout }: { role: AdminRole; onLogout: () =>
 
       {section === "overview" ? (
         <div>
-          <SectionTitle kicker="डैशबोर्ड" title="अवलोकन" />
+          <SectionTitle kicker={t("kicker.dashboard")} title={t("title.overview")} />
           <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
             <Stat
-              label="कुल पंजीकरण"
+              label={t("kpi.totalRegistrations")}
               value={visits.totalRegistrations || total}
-              hint="सभी समय"
+              hint={t("kpi.totalRegistrationsHint")}
               tone="maroon"
               icon={<ClipboardList className="size-5" aria-hidden="true" />}
-              trend={today > 0 ? { label: `आज ${today}`, tone: "success" } : { label: "आज 0", tone: "muted" }}
+              trend={
+                today > 0
+                  ? { label: t("kpi.todayCount", { n: today }), tone: "success" }
+                  : { label: t("kpi.todayZero"), tone: "muted" }
+              }
             />
             <Stat
-              label="कुल विज़िट"
+              label={t("kpi.totalVisits")}
               value={visits.totalVisits}
-              hint="सभी लिंक विज़िट"
+              hint={t("kpi.totalVisitsHint")}
               tone="navy"
               icon={<Eye className="size-5" aria-hidden="true" />}
             />
             <Stat
-              label="अद्वितीय आगंतुक"
+              label={t("kpi.uniqueVisitors")}
               value={visits.uniqueVisitors}
-              hint="अनाम ब्राउज़र/डिवाइस अनुमान"
+              hint={t("kpi.uniqueVisitorsHint")}
               tone="info"
               icon={<Users className="size-5" aria-hidden="true" />}
             />
             <Stat
-              label="अभी ऑनलाइन"
+              label={t("kpi.onlineNow")}
               value={visits.online}
-              hint="पिछले 5 मिनट में सक्रिय"
+              hint={t("kpi.onlineHint")}
               tone="success"
               icon={<UserCheck className="size-5" aria-hidden="true" />}
               trend={
                 visits.online > 0
-                  ? { label: "सक्रिय", tone: "success" }
-                  : { label: "कोई सक्रिय नहीं", tone: "muted" }
+                  ? { label: t("kpi.active"), tone: "success" }
+                  : { label: t("kpi.noneActive"), tone: "muted" }
               }
             />
             <Stat
-              label="पंजीकरण दर"
+              label={t("kpi.conversion")}
               value={visits.conversionRate}
               suffix="%"
-              hint="पंजीकरण / अद्वितीय आगंतुक"
+              hint={t("kpi.conversionHint")}
               tone="saffron"
               icon={<Percent className="size-5" aria-hidden="true" />}
             />
           </div>
           <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
             <Stat
-              label="आज के पंजीकरण"
+              label={t("kpi.todayRegistrations")}
               value={today}
               tone="saffron"
               icon={<CalendarDays className="size-5" aria-hidden="true" />}
             />
-            <Stat label="लंबित" value={pending} tone="info" icon={<Clock className="size-5" aria-hidden="true" />} />
+            <Stat label={t("kpi.pending")} value={pending} tone="info" icon={<Clock className="size-5" aria-hidden="true" />} />
             <Stat
-              label="जाँच पूर्ण"
+              label={t("kpi.screened")}
               value={screened}
               tone="navy"
               icon={<Stethoscope className="size-5" aria-hidden="true" />}
             />
             <Stat
-              label="ऑपरेशन हेतु चयनित"
+              label={t("kpi.selectedForOp")}
               value={selectedCount}
               tone="saffron"
               icon={<UserCheck className="size-5" aria-hidden="true" />}
             />
             <Stat
-              label="ऑपरेशन पूर्ण"
+              label={t("kpi.opComplete")}
               value={completed}
               tone="success"
               icon={<CheckCircle2 className="size-5" aria-hidden="true" />}
@@ -383,20 +389,17 @@ export function AdminHome({ role, onLogout }: { role: AdminRole; onLogout: () =>
 
       {section === "registrations" ? (
         <div>
-          <SectionTitle kicker="मरीज" title="पंजीकरण" />
+          <SectionTitle kicker={t("kicker.patients")} title={t("title.registrations")} />
           <Card>
             <h2 className="flex items-center gap-2 font-display text-lg text-navy">
               <Search className="size-4" aria-hidden="true" />
-              खोज और फ़िल्टर
+              {t("filters.title")}
             </h2>
-            <p className="mt-1 text-xs text-muted">
-              कार्यप्रवाह: पंजीकृत → जाँच पूर्ण → ऑपरेशन हेतु चयनित → ऑपरेशन निर्धारित → ऑपरेशन पूर्ण →
-              फॉलो-अप पूर्ण
-            </p>
+            <p className="mt-1 text-xs text-muted">{t("filters.workflow")}</p>
             <div className="mt-4 rounded-lg bg-cream p-3">
               <div className="grid gap-3 sm:grid-cols-3">
                 <div>
-                  <Label className="mb-1">पंजीकरण संख्या</Label>
+                  <Label className="mb-1">{t("filters.regNo")}</Label>
                   <Input
                     value={filters.registrationNumber}
                     onChange={(e) => setFilter("registrationNumber", e.target.value)}
@@ -404,33 +407,33 @@ export function AdminHome({ role, onLogout }: { role: AdminRole; onLogout: () =>
                   />
                 </div>
                 <div>
-                  <Label className="mb-1">नाम</Label>
+                  <Label className="mb-1">{t("filters.name")}</Label>
                   <Input
                     value={filters.name}
                     onChange={(e) => setFilter("name", e.target.value)}
-                    placeholder="नाम से खोजें"
+                    placeholder={t("filters.namePlaceholder")}
                   />
                 </div>
                 <div>
-                  <Label className="mb-1">मोबाइल</Label>
+                  <Label className="mb-1">{t("filters.mobile")}</Label>
                   <Input
                     inputMode="numeric"
                     maxLength={10}
                     value={filters.mobile}
                     onChange={(e) => setFilter("mobile", e.target.value.replace(/\D/g, "").slice(0, 10))}
-                    placeholder="मोबाइल से खोजें"
+                    placeholder={t("filters.mobilePlaceholder")}
                   />
                 </div>
               </div>
             </div>
             <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               <div>
-                <Label className="mb-1">ग्राम</Label>
+                <Label className="mb-1">{t("filters.village")}</Label>
                 <Input
                   list="village-list"
                   value={filters.village}
                   onChange={(e) => setFilter("village", e.target.value)}
-                  placeholder="ग्राम"
+                  placeholder={t("filters.village")}
                 />
                 <datalist id="village-list">
                   {villageOptions.map((v) => (
@@ -439,12 +442,12 @@ export function AdminHome({ role, onLogout }: { role: AdminRole; onLogout: () =>
                 </datalist>
               </div>
               <div>
-                <Label className="mb-1">न्याय पंचायत</Label>
+                <Label className="mb-1">{t("filters.nyaya")}</Label>
                 <Input
                   list="nyaya-list"
                   value={filters.nyayaPanchayat}
                   onChange={(e) => setFilter("nyayaPanchayat", e.target.value)}
-                  placeholder="न्याय पंचायत"
+                  placeholder={t("filters.nyaya")}
                 />
                 <datalist id="nyaya-list">
                   {nyayaOptions.map((n) => (
@@ -453,13 +456,13 @@ export function AdminHome({ role, onLogout }: { role: AdminRole; onLogout: () =>
                 </datalist>
               </div>
               <div>
-                <Label className="mb-1">ब्लॉक</Label>
+                <Label className="mb-1">{t("filters.block")}</Label>
                 <NativeSelect
                   id="filter-block"
                   value={filters.block}
                   onChange={(e) => setFilter("block", e.target.value)}
                 >
-                  <option value="">सभी</option>
+                  <option value="">{t("filters.all")}</option>
                   {BLOCKS.map((b) => (
                     <option key={b} value={b}>
                       {b}
@@ -468,26 +471,26 @@ export function AdminHome({ role, onLogout }: { role: AdminRole; onLogout: () =>
                 </NativeSelect>
               </div>
               <div>
-                <Label className="mb-1">स्थिति</Label>
+                <Label className="mb-1">{t("filters.status")}</Label>
                 <NativeSelect
                   id="filter-status"
                   value={filters.status}
                   onChange={(e) => setFilter("status", e.target.value)}
                 >
-                  <option value="">सभी</option>
+                  <option value="">{t("filters.all")}</option>
                   {STATUSES.map((s) => (
                     <option key={s.value} value={s.value}>
-                      {s.label}
+                      {tStatus(t, s.value)}
                     </option>
                   ))}
                 </NativeSelect>
               </div>
               <div>
-                <Label className="mb-1">पंजीकरण तिथि</Label>
+                <Label className="mb-1">{t("filters.regDate")}</Label>
                 <Input type="date" value={filters.date} onChange={(e) => setFilter("date", e.target.value)} />
               </div>
               <div>
-                <Label className="mb-1">तिथि से</Label>
+                <Label className="mb-1">{t("filters.dateFrom")}</Label>
                 <Input
                   type="date"
                   value={filters.dateFrom}
@@ -495,7 +498,7 @@ export function AdminHome({ role, onLogout }: { role: AdminRole; onLogout: () =>
                 />
               </div>
               <div>
-                <Label className="mb-1">तिथि तक</Label>
+                <Label className="mb-1">{t("filters.dateTo")}</Label>
                 <Input type="date" value={filters.dateTo} onChange={(e) => setFilter("dateTo", e.target.value)} />
               </div>
             </div>
@@ -505,7 +508,7 @@ export function AdminHome({ role, onLogout }: { role: AdminRole; onLogout: () =>
             <div className="sticky bottom-3 z-20 mt-5 rounded-xl bg-navy p-3 text-paper shadow-[var(--shadow-lift)]">
               <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
                 <p className="text-sm font-medium">
-                  चयनित: <span className="tabular-nums">{selected.size}</span>
+                  {t("bulk.selected")} <span className="tabular-nums">{selected.size}</span>
                 </p>
                 <StatusSelect
                   className="min-h-10 w-auto min-w-44 bg-paper text-navy"
@@ -513,15 +516,15 @@ export function AdminHome({ role, onLogout }: { role: AdminRole; onLogout: () =>
                   onChange={(value) => setBulkStatus(value as RegistrationStatus)}
                 />
                 <Button size="sm" disabled={bulkBusy} onClick={() => void onBulkStatus()}>
-                  {bulkBusy ? "लागू हो रहा है…" : "स्थिति लागू करें"}
+                  {bulkBusy ? t("bulk.applying") : t("bulk.applyStatus")}
                 </Button>
                 <Button variant="secondary" size="sm" disabled={bulkBusy} onClick={onBulkCsv}>
                   <Download className="size-4" aria-hidden="true" />
-                  चयनित CSV
+                  {t("bulk.csv")}
                 </Button>
                 <Button variant="secondary" size="sm" disabled={bulkBusy} onClick={() => void onBulkPdf()}>
                   <Download className="size-4" aria-hidden="true" />
-                  चयनित PDF
+                  {t("bulk.pdf")}
                 </Button>
                 <Button
                   variant="ghost"
@@ -529,7 +532,7 @@ export function AdminHome({ role, onLogout }: { role: AdminRole; onLogout: () =>
                   className="text-paper"
                   onClick={() => setSelected(new Set())}
                 >
-                  चयन हटाएँ
+                  {t("bulk.clear")}
                 </Button>
               </div>
             </div>
@@ -565,29 +568,29 @@ export function AdminHome({ role, onLogout }: { role: AdminRole; onLogout: () =>
 
       {section === "analytics" ? (
         <div>
-          <SectionTitle kicker="विश्लेषण" title="आँकड़े" />
+          <SectionTitle kicker={t("kicker.analysis")} title={t("title.analytics")} />
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
             <Stat
-              label="अभी ऑनलाइन"
+              label={t("kpi.onlineNow")}
               value={visits.online}
-              hint="पिछले 5 मिनट में सक्रिय"
+              hint={t("kpi.onlineHint")}
               tone="success"
               icon={<UserCheck className="size-5" aria-hidden="true" />}
               trend={
                 visits.online > 0
-                  ? { label: "सक्रिय", tone: "success" }
-                  : { label: "कोई सक्रिय नहीं", tone: "muted" }
+                  ? { label: t("kpi.active"), tone: "success" }
+                  : { label: t("kpi.noneActive"), tone: "muted" }
               }
             />
             <Stat
-              label="अद्वितीय आगंतुक"
+              label={t("kpi.uniqueVisitors")}
               value={visits.uniqueVisitors}
-              hint="अनाम ब्राउज़र/डिवाइस अनुमान"
+              hint={t("kpi.uniqueVisitorsHint")}
               tone="info"
               icon={<Users className="size-5" aria-hidden="true" />}
             />
             <Stat
-              label="कुल पंजीकरण"
+              label={t("kpi.totalRegistrations")}
               value={visits.totalRegistrations || total}
               tone="maroon"
               icon={<CalendarDays className="size-5" aria-hidden="true" />}
@@ -606,24 +609,21 @@ export function AdminHome({ role, onLogout }: { role: AdminRole; onLogout: () =>
 
       {section === "reports" ? (
         <div>
-          <SectionTitle kicker="निर्यात" title="रिपोर्ट" />
+          <SectionTitle kicker={t("kicker.export")} title={t("title.reports")} />
           <Card>
-            <h2 className="font-display text-lg text-navy">CSV निर्यात</h2>
-            <p className="mt-1 text-sm text-muted">वर्तमान फ़िल्टर के अनुसार पंजीकरण सूची डाउनलोड करें।</p>
+            <h2 className="font-display text-lg text-navy">{t("reports.csvTitle")}</h2>
+            <p className="mt-1 text-sm text-muted">{t("reports.csvHint")}</p>
             <Button className="mt-4" size="sm" onClick={() => void onExport()}>
               <Download className="size-4" aria-hidden="true" />
-              CSV डाउनलोड
+              {t("reports.csvDownload")}
             </Button>
           </Card>
           <Card className="mt-5">
-            <h2 className="font-display text-lg text-navy">पंजीकरण QR कोड</h2>
-            <p className="mt-1 text-sm text-muted">
-              इस कोड को पोस्टर या रजिस्ट्रेशन डेस्क पर लगाएँ। स्कैन करने पर सार्वजनिक पंजीकरण पृष्ठ
-              (/register) खुलता है।
-            </p>
+            <h2 className="font-display text-lg text-navy">{t("reports.qrTitle")}</h2>
+            <p className="mt-1 text-sm text-muted">{t("reports.qrHint")}</p>
             <p className="mt-1 text-sm font-medium text-saffron">{CAMP.dateLine}</p>
             <div className="mt-4 flex flex-col items-center gap-3 sm:flex-row sm:items-start">
-              <QrCode id="registration-qr" value={qrValue} label="पंजीकरण पृष्ठ का QR कोड" />
+              <QrCode id="registration-qr" value={qrValue} label={t("reports.qrLabel")} />
               <div className="min-w-0 flex-1">
                 <p className="break-all rounded-md bg-cream px-3 py-2 text-sm text-navy">{qrValue}</p>
                 <div className="mt-3 flex flex-wrap gap-2">
@@ -632,7 +632,7 @@ export function AdminHome({ role, onLogout }: { role: AdminRole; onLogout: () =>
                     size="sm"
                     onClick={() => void navigator.clipboard.writeText(qrValue)}
                   >
-                    लिंक कॉपी करें
+                    {t("reports.copyLink")}
                   </Button>
                   <Button
                     variant="secondary"
@@ -640,7 +640,7 @@ export function AdminHome({ role, onLogout }: { role: AdminRole; onLogout: () =>
                     onClick={() => downloadQrPng("registration-qr", "trishakti-register-qr.png")}
                   >
                     <Download className="size-4" aria-hidden="true" />
-                    QR डाउनलोड
+                    {t("reports.qrDownload")}
                   </Button>
                   <Button
                     variant="secondary"
@@ -648,7 +648,7 @@ export function AdminHome({ role, onLogout }: { role: AdminRole; onLogout: () =>
                     onClick={() => printQr("registration-qr", CAMP.dateLine, qrValue)}
                   >
                     <Printer className="size-4" aria-hidden="true" />
-                    प्रिंट
+                    {t("reports.print")}
                   </Button>
                 </div>
               </div>
@@ -659,14 +659,12 @@ export function AdminHome({ role, onLogout }: { role: AdminRole; onLogout: () =>
 
       {section === "settings" ? (
         <div>
-          <SectionTitle kicker="खाता" title="सेटिंग" />
+          <SectionTitle kicker={t("kicker.account")} title={t("title.settings")} />
           {isSuperAdmin ? (
             <Card>
-              <p className="text-sm text-muted">
-                Super Admin पासवर्ड पर्यावरण में रहता है। एडमिन पासवर्ड Super Admin अनुभाग से रीसेट करें।
-              </p>
+              <p className="text-sm text-muted">{t("settings.superHint")}</p>
               <Button className="mt-4" size="sm" variant="secondary" onClick={() => goTo("super", "sa-security")}>
-                Super Admin खोलें
+                {t("settings.openSuper")}
               </Button>
             </Card>
           ) : (
@@ -677,7 +675,7 @@ export function AdminHome({ role, onLogout }: { role: AdminRole; onLogout: () =>
 
       {section === "super" && isSuperAdmin ? (
         <div>
-          <SectionTitle kicker="सुरक्षा" title="SUPER ADMIN" />
+          <SectionTitle kicker={t("kicker.security")} title={t("title.superAdmin")} />
           <AdminSecurityPanel onRequestDelete={setPendingDelete} />
         </div>
       ) : null}

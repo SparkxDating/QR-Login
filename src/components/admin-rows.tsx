@@ -1,6 +1,7 @@
 import { useEffect, useState, type ComponentProps, type ReactNode } from "react";
-import { OTHER_STATUSES, WORKFLOW_STATUSES, statusLabel } from "@/lib/camp";
-import { duplicateLabel, type RegistrationRow } from "@/lib/registrations";
+import { OTHER_STATUSES, WORKFLOW_STATUSES } from "@/lib/camp";
+import { type RegistrationRow } from "@/lib/registrations";
+import { tDuplicate, tStatus, useDashboardI18n } from "@/components/dashboard-locale";
 import {
   openPdfPreviewWindow,
   printRegistrationPdf,
@@ -12,10 +13,10 @@ import { Card } from "@/components/ui/card";
 import { NativeSelect } from "@/components/ui/input";
 import { Download, Eye, LoaderCircle, Printer, Trash2, Users } from "lucide-react";
 
-function formatWhen(iso: string): string {
+function formatWhen(iso: string, locale: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return iso;
-  return new Intl.DateTimeFormat("hi-IN", {
+  return new Intl.DateTimeFormat(locale, {
     timeZone: "Asia/Kolkata",
     day: "2-digit",
     month: "short",
@@ -82,6 +83,7 @@ export function Stat({
 }
 
 export function StatusBadge({ status }: { status: string }) {
+  const { t } = useDashboardI18n();
   const tone =
     status === "operation_completed" || status === "follow_up"
       ? "bg-success/12 text-success"
@@ -94,7 +96,7 @@ export function StatusBadge({ status }: { status: string }) {
             : "bg-cream text-muted";
   return (
     <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${tone}`}>
-      {statusLabel(status)}
+      {tStatus(t, status)}
     </span>
   );
 }
@@ -110,6 +112,7 @@ export function StatusSelect({
   onChange: (value: string) => void;
   className?: string;
 }) {
+  const { t } = useDashboardI18n();
   return (
     <NativeSelect
       id={id}
@@ -117,17 +120,17 @@ export function StatusSelect({
       value={value}
       onChange={(e) => onChange(e.target.value)}
     >
-      <optgroup label="कार्यप्रवाह">
+      <optgroup label={t("status.groupWorkflow")}>
         {WORKFLOW_STATUSES.map((s) => (
           <option key={s.value} value={s.value}>
-            {s.label}
+            {tStatus(t, s.value)}
           </option>
         ))}
       </optgroup>
-      <optgroup label="अन्य">
+      <optgroup label={t("status.groupOther")}>
         {OTHER_STATUSES.map((s) => (
           <option key={s.value} value={s.value}>
-            {s.label}
+            {tStatus(t, s.value)}
           </option>
         ))}
       </optgroup>
@@ -183,6 +186,7 @@ export function AdminRegistrationList({
   onOpen: (row: RegistrationRow) => void;
   onDelete?: (row: RegistrationRow) => void;
 }) {
+  const { t, locale } = useDashboardI18n();
   const [busyId, setBusyId] = useState<number | null>(null);
   const [downloadError, setDownloadError] = useState<{ id: number; message: string } | null>(null);
   const [openPdf, setOpenPdf] = useState<{ id: number; url: string; filename: string } | null>(null);
@@ -219,7 +223,7 @@ export function AdminRegistrationList({
       }
       setDownloadError({
         id: row.id,
-        message: "स्लिप PDF नहीं बन सका। कृपया पुनः प्रयास करें।",
+        message: t("list.pdfFail"),
       });
     } finally {
       setBusyId(null);
@@ -233,7 +237,7 @@ export function AdminRegistrationList({
     try {
       await printRegistrationPdf(row.registrationNumber, slipDetailsFromRow(row));
     } catch {
-      setDownloadError({ id: row.id, message: "प्रिंट नहीं हो सका। कृपया पुनः प्रयास करें।" });
+      setDownloadError({ id: row.id, message: t("list.printFail") });
     } finally {
       setBusyId(null);
     }
@@ -244,11 +248,11 @@ export function AdminRegistrationList({
   function actions(row: RegistrationRow, compact?: boolean) {
     return (
       <div className={compact ? "flex flex-wrap gap-1.5" : "grid grid-cols-2 gap-2 sm:flex sm:flex-wrap"}>
-        <ActionButton label="देखें" compact={compact} variant="secondary" onClick={() => onOpen(row)}>
+        <ActionButton label={t("list.view")} compact={compact} variant="secondary" onClick={() => onOpen(row)}>
           <Eye className="size-4" aria-hidden="true" />
         </ActionButton>
         <ActionButton
-          label="PDF"
+          label={t("list.pdf")}
           compact={compact}
           variant="navy"
           disabled={busyId !== null}
@@ -261,7 +265,7 @@ export function AdminRegistrationList({
           )}
         </ActionButton>
         <ActionButton
-          label="प्रिंट"
+          label={t("list.print")}
           compact={compact}
           variant="secondary"
           disabled={busyId !== null}
@@ -270,7 +274,7 @@ export function AdminRegistrationList({
           <Printer className="size-4" aria-hidden="true" />
         </ActionButton>
         {canDelete ? (
-          <ActionButton label="हटाएँ" compact={compact} variant="danger" onClick={() => onDelete?.(row)}>
+          <ActionButton label={t("list.delete")} compact={compact} variant="danger" onClick={() => onDelete?.(row)}>
             <Trash2 className="size-4" aria-hidden="true" />
           </ActionButton>
         ) : null}
@@ -290,7 +294,7 @@ export function AdminRegistrationList({
             target="_blank"
             className="mt-2 inline-block text-xs font-semibold text-maroon hover:underline"
           >
-            PDF खोलें / सेव करें
+            {t("list.openPdf")}
           </a>
         ) : null}
       </>
@@ -301,7 +305,7 @@ export function AdminRegistrationList({
     <div className="mt-4">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm text-muted">
-          दिखाए गए: <span className="tabular-nums font-semibold text-navy">{filteredCount}</span>
+          {t("list.shown")} <span className="tabular-nums font-semibold text-navy">{filteredCount}</span>
         </p>
         {rows.length > 0 ? (
           <label className="flex min-h-11 items-center gap-2 text-sm text-navy">
@@ -311,7 +315,7 @@ export function AdminRegistrationList({
               checked={allSelected}
               onChange={onToggleAll}
             />
-            सभी चुनें
+            {t("list.selectAll")}
           </label>
         ) : null}
       </div>
@@ -321,11 +325,11 @@ export function AdminRegistrationList({
       {loading ? (
         <p className="flex items-center gap-2 text-sm text-muted">
           <LoaderCircle className="size-4 animate-spin" />
-          लोड हो रहा है…
+          {t("list.loading")}
         </p>
       ) : rows.length === 0 ? (
         <Card>
-          <p className="text-center text-muted">कोई पंजीकरण नहीं मिला।</p>
+          <p className="text-center text-muted">{t("list.empty")}</p>
         </Card>
       ) : (
         <>
@@ -343,7 +347,7 @@ export function AdminRegistrationList({
                       {row.name}
                     </button>
                     {row.duplicate ? (
-                      <p className="mt-1 text-xs text-maroon">{duplicateLabel(row.duplicate)}</p>
+                      <p className="mt-1 text-xs text-maroon">{tDuplicate(t, row.duplicate)}</p>
                     ) : null}
                   </div>
                   <label className="flex min-h-11 min-w-11 items-start justify-end">
@@ -352,26 +356,26 @@ export function AdminRegistrationList({
                       className="size-4 accent-saffron"
                       checked={selected.has(row.id)}
                       onChange={() => onToggle(row.id)}
-                      aria-label={`${row.name} चुनें`}
+                      aria-label={t("list.selectRow", { name: row.name })}
                     />
                   </label>
                 </div>
                 <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1 text-sm">
                   <div>
-                    <dt className="text-xs text-muted">मोबाइल</dt>
+                    <dt className="text-xs text-muted">{t("list.mobile")}</dt>
                     <dd className="tabular-nums text-navy">{row.mobile}</dd>
                   </div>
                   <div>
-                    <dt className="text-xs text-muted">ब्लॉक</dt>
+                    <dt className="text-xs text-muted">{t("list.block")}</dt>
                     <dd className="text-navy">{row.block}</dd>
                   </div>
                   <div>
-                    <dt className="text-xs text-muted">ग्राम</dt>
+                    <dt className="text-xs text-muted">{t("list.village")}</dt>
                     <dd className="text-navy">{row.village}</dd>
                   </div>
                   <div>
-                    <dt className="text-xs text-muted">तिथि</dt>
-                    <dd className="text-muted">{formatWhen(row.createdAt)}</dd>
+                    <dt className="text-xs text-muted">{t("list.date")}</dt>
+                    <dd className="text-muted">{formatWhen(row.createdAt, locale)}</dd>
                   </div>
                 </dl>
                 <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -398,14 +402,14 @@ export function AdminRegistrationList({
                 <thead>
                   <tr className="bg-cream text-xs font-semibold tracking-wide text-muted">
                     <th className="sticky left-0 bg-cream px-3 py-3 font-semibold"> </th>
-                    <th className="px-3 py-3 font-semibold">पंजीकरण संख्या</th>
-                    <th className="px-3 py-3 font-semibold">रोगी का नाम</th>
-                    <th className="px-3 py-3 font-semibold">मोबाइल</th>
-                    <th className="px-3 py-3 font-semibold">ग्राम</th>
-                    <th className="px-3 py-3 font-semibold">ब्लॉक</th>
-                    <th className="px-3 py-3 font-semibold">पंजीकरण तिथि</th>
-                    <th className="px-3 py-3 font-semibold">स्थिति</th>
-                    <th className="px-3 py-3 font-semibold">कार्य</th>
+                    <th className="px-3 py-3 font-semibold">{t("list.regNo")}</th>
+                    <th className="px-3 py-3 font-semibold">{t("list.patientName")}</th>
+                    <th className="px-3 py-3 font-semibold">{t("list.mobile")}</th>
+                    <th className="px-3 py-3 font-semibold">{t("list.village")}</th>
+                    <th className="px-3 py-3 font-semibold">{t("list.block")}</th>
+                    <th className="px-3 py-3 font-semibold">{t("list.regDate")}</th>
+                    <th className="px-3 py-3 font-semibold">{t("list.status")}</th>
+                    <th className="px-3 py-3 font-semibold">{t("list.actions")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -417,7 +421,7 @@ export function AdminRegistrationList({
                           className="size-4 accent-saffron"
                           checked={selected.has(row.id)}
                           onChange={() => onToggle(row.id)}
-                          aria-label={`${row.name} चुनें`}
+                          aria-label={t("list.selectRow", { name: row.name })}
                         />
                       </td>
                       <td className="border-t border-line px-3 py-3 font-semibold tabular-nums text-maroon">
@@ -432,13 +436,13 @@ export function AdminRegistrationList({
                           {row.name}
                         </button>
                         {row.duplicate ? (
-                          <p className="mt-1 text-xs text-maroon">{duplicateLabel(row.duplicate)}</p>
+                          <p className="mt-1 text-xs text-maroon">{tDuplicate(t, row.duplicate)}</p>
                         ) : null}
                       </td>
                       <td className="border-t border-line px-3 py-3 tabular-nums text-navy">{row.mobile}</td>
                       <td className="border-t border-line px-3 py-3 text-navy">{row.village}</td>
                       <td className="border-t border-line px-3 py-3 text-navy">{row.block}</td>
-                      <td className="border-t border-line px-3 py-3 text-muted">{formatWhen(row.createdAt)}</td>
+                      <td className="border-t border-line px-3 py-3 text-muted">{formatWhen(row.createdAt, locale)}</td>
                       <td className="border-t border-line px-3 py-3">
                         <div className="grid gap-2">
                           <StatusBadge status={row.status} />

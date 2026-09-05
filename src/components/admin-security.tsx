@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { AUDIT_ACTION_LABELS, roleLabel } from "@/lib/admin";
+import { tAudit, tRole, useDashboardI18n } from "@/components/dashboard-locale";
 import {
   listAdminAccounts,
   listAdminAuditLogs,
@@ -14,10 +14,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { KeyRound, LoaderCircle, LogOut, Shield, Trash2, UserCog, Activity } from "lucide-react";
 
-function formatWhen(iso: string): string {
+function formatWhen(iso: string, locale: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return iso;
-  return new Intl.DateTimeFormat("hi-IN", {
+  return new Intl.DateTimeFormat(locale, {
     timeZone: "Asia/Kolkata",
     day: "2-digit",
     month: "short",
@@ -32,6 +32,7 @@ export function AdminSecurityPanel({
 }: {
   onRequestDelete: (row: RegistrationRow) => void;
 }) {
+  const { t, locale } = useDashboardI18n();
   const [accounts, setAccounts] = useState<
     { username: string; role: string; source: string; passwordSet: boolean }[]
   >([]);
@@ -54,7 +55,7 @@ export function AdminSecurityPanel({
       setAccounts(accountRes.accounts);
       setLogs(logRes.logs);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "सुरक्षा डेटा नहीं मिल सका।");
+      setError(err instanceof Error ? err.message : t("super.loadFail"));
     } finally {
       setLoading(false);
     }
@@ -79,12 +80,12 @@ export function AdminSecurityPanel({
         res.rows.find((row) => row.registrationNumber.toLowerCase() === q.toLowerCase()) ??
         res.rows[0];
       if (!match) {
-        setError("पंजीकरण नहीं मिला।");
+        setError(t("super.notFound"));
         return;
       }
       onRequestDelete(match);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "पंजीकरण नहीं मिला।");
+      setError(err instanceof Error ? err.message : t("super.notFound"));
     } finally {
       setBusy(null);
     }
@@ -106,10 +107,10 @@ export function AdminSecurityPanel({
       }
       setNext("");
       setConfirm("");
-      setNotice("एडमिन पासवर्ड रीसेट हो गया। पिछले एडमिन सत्र समाप्त कर दिए गए।");
+      setNotice(t("super.resetNotice"));
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "पासवर्ड नहीं बदला जा सका।");
+      setError(err instanceof Error ? err.message : t("super.passwordFail"));
     } finally {
       setBusy(null);
     }
@@ -126,10 +127,10 @@ export function AdminSecurityPanel({
         setError(res.error);
         return;
       }
-      setNotice("सभी एडमिन सत्र समाप्त कर दिए गए।");
+      setNotice(t("super.logoutNotice"));
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "सत्र समाप्त नहीं हो सके।");
+      setError(err instanceof Error ? err.message : t("super.logoutFail"));
     } finally {
       setBusy(null);
     }
@@ -144,15 +145,15 @@ export function AdminSecurityPanel({
             <Shield className="size-5" aria-hidden="true" />
           </span>
           <div>
-            <p className="text-xs font-semibold tracking-wide text-maroon">RESTRICTED</p>
-            <h2 className="font-display text-xl text-navy">SUPER ADMIN</h2>
-            <p className="mt-1 text-sm text-muted">केवल सुपर एडमिन — सर्वर पर अनुमति जाँची जाती है।</p>
+            <p className="text-xs font-semibold tracking-wide text-maroon">{t("super.restricted")}</p>
+            <h2 className="font-display text-xl text-navy">{t("super.title")}</h2>
+            <p className="mt-1 text-sm text-muted">{t("super.hint")}</p>
           </div>
         </div>
         {loading ? (
           <p className="flex items-center gap-2 px-5 pb-5 text-sm text-muted sm:px-6">
             <LoaderCircle className="size-4 animate-spin" />
-            लोड हो रहा है…
+            {t("list.loading")}
           </p>
         ) : null}
         {error ? (
@@ -172,15 +173,13 @@ export function AdminSecurityPanel({
         <div className="bg-danger/5 p-5 sm:p-6">
           <h3 className="flex items-center gap-2 font-display text-base text-navy">
             <Trash2 className="size-4 text-danger" aria-hidden="true" />
-            पंजीकरण हटाएँ
+            {t("super.deleteTitle")}
           </h3>
-          <p className="mt-1 text-xs text-muted">
-            सूची या प्रोफ़ाइल पर भी हटाएँ उपलब्ध है। पुष्टि के बाद ही रिकॉर्ड स्थायी रूप से हटता है।
-          </p>
+          <p className="mt-1 text-xs text-muted">{t("super.deleteHint")}</p>
           <form onSubmit={onFindDelete} className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-end">
             <div className="min-w-0 flex-1">
               <Label className="mb-1.5" htmlFor="delete-reg-no">
-                पंजीकरण संख्या
+                {t("super.regNo")}
               </Label>
               <Input
                 id="delete-reg-no"
@@ -191,7 +190,7 @@ export function AdminSecurityPanel({
               />
             </div>
             <Button type="submit" variant="danger" size="sm" disabled={busy !== null}>
-              {busy === "find" ? "खोज हो रही है…" : "हटाएँ"}
+              {busy === "find" ? t("super.finding") : t("super.findDelete")}
             </Button>
           </form>
         </div>
@@ -202,14 +201,12 @@ export function AdminSecurityPanel({
         <div className="p-5 sm:p-6">
           <h3 className="flex items-center gap-2 font-display text-base text-navy">
             <KeyRound className="size-4 text-maroon" aria-hidden="true" />
-            पासवर्ड प्रबंधन
+            {t("super.passwordTitle")}
           </h3>
-          <p className="mt-1 text-xs text-muted">
-            सामान्य एडमिन का नया पासवर्ड सेट करें। Super Admin पासवर्ड पर्यावरण में रहता है।
-          </p>
+          <p className="mt-1 text-xs text-muted">{t("super.passwordHint")}</p>
           <form onSubmit={onReset} className="mt-3 max-w-md">
             <Label className="mb-1.5" htmlFor="reset-admin-new">
-              नया एडमिन पासवर्ड
+              {t("super.newAdminPassword")}
             </Label>
             <Input
               id="reset-admin-new"
@@ -222,7 +219,7 @@ export function AdminSecurityPanel({
               required
             />
             <Label className="mt-3 mb-1.5" htmlFor="reset-admin-confirm">
-              नया पासवर्ड दोबारा दर्ज करें
+              {t("super.confirmPassword")}
             </Label>
             <Input
               id="reset-admin-confirm"
@@ -235,7 +232,7 @@ export function AdminSecurityPanel({
               required
             />
             <Button type="submit" className="mt-4" size="sm" disabled={busy !== null}>
-              {busy === "reset" ? "सेट हो रहा है…" : "पासवर्ड रीसेट करें"}
+              {busy === "reset" ? t("super.resetting") : t("super.resetPassword")}
             </Button>
           </form>
         </div>
@@ -246,7 +243,7 @@ export function AdminSecurityPanel({
         <div className="p-5 sm:p-6">
           <h3 className="flex items-center gap-2 font-display text-base text-navy">
             <UserCog className="size-4 text-navy" aria-hidden="true" />
-            एडमिन खाते
+            {t("super.accounts")}
           </h3>
           <ul className="mt-3 grid gap-2">
             {accounts.map((account) => (
@@ -256,8 +253,8 @@ export function AdminSecurityPanel({
               >
                 <p className="font-medium text-navy">{account.username}</p>
                 <p className="text-muted">
-                  {roleLabel(account.role)} · {account.source === "environment" ? "पर्यावरण" : "डेटाबेस"}
-                  {account.passwordSet ? "" : " · पासवर्ड सेट नहीं"}
+                  {tRole(t, account.role)} · {account.source === "environment" ? t("super.sourceEnv") : t("super.sourceDb")}
+                  {account.passwordSet ? "" : ` · ${t("super.passwordUnset")}`}
                 </p>
               </li>
             ))}
@@ -270,20 +267,20 @@ export function AdminSecurityPanel({
         <div className="p-5 sm:p-6">
           <h3 className="flex items-center gap-2 font-display text-base text-navy">
             <Activity className="size-4 text-navy" aria-hidden="true" />
-            गतिविधि लॉग
+            {t("super.logs")}
           </h3>
           {logs.length === 0 ? (
-            <p className="mt-2 text-sm text-muted">अभी कोई गतिविधि नहीं।</p>
+            <p className="mt-2 text-sm text-muted">{t("super.noLogs")}</p>
           ) : (
             <ul className="mt-3 max-h-80 overflow-y-auto rounded-md bg-cream">
               {logs.map((log) => (
                 <li key={log.id} className="border-b border-line px-3 py-2 text-sm last:border-b-0">
                   <p className="text-navy">
-                    {AUDIT_ACTION_LABELS[log.action] ?? log.action}
+                    {tAudit(t, log.action)}
                     {log.detail ? <span className="text-muted"> · {log.detail}</span> : null}
                   </p>
                   <p className="text-xs text-muted">
-                    {roleLabel(log.actorRole)} · {formatWhen(log.createdAt)}
+                    {tRole(t, log.actorRole)} · {formatWhen(log.createdAt, locale)}
                   </p>
                 </li>
               ))}
@@ -297,11 +294,9 @@ export function AdminSecurityPanel({
         <div className="p-5 sm:p-6">
           <h3 className="flex items-center gap-2 font-display text-base text-navy">
             <LogOut className="size-4 text-maroon" aria-hidden="true" />
-            सभी सत्र समाप्त करें
+            {t("super.logoutAllTitle")}
           </h3>
-          <p className="mt-1 text-xs text-muted">
-            सभी सामान्य एडमिन को लॉगआउट करें। आपका Super Admin सत्र बना रहता है।
-          </p>
+          <p className="mt-1 text-xs text-muted">{t("super.logoutAllHint")}</p>
           <Button
             variant="secondary"
             size="sm"
@@ -309,7 +304,7 @@ export function AdminSecurityPanel({
             disabled={busy !== null}
             onClick={() => void onLogoutAll()}
           >
-            {busy === "logout" ? "समाप्त हो रहा है…" : "सभी एडमिन सत्र समाप्त करें"}
+            {busy === "logout" ? t("super.loggingOut") : t("super.logoutAll")}
           </Button>
         </div>
       </Card>

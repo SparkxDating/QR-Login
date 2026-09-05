@@ -4,12 +4,11 @@ import {
   FOLLOW_UP_STATUSES,
   OTHER_STATUSES,
   WORKFLOW_STATUSES,
-  followUpStatusLabel,
-  statusLabel,
   type FollowUpStatus,
   type RegistrationStatus,
 } from "@/lib/camp";
-import { duplicateLabel, type RegistrationRow } from "@/lib/registrations";
+import { type RegistrationRow } from "@/lib/registrations";
+import { tDuplicate, tFollowUp, tStatus, useDashboardI18n } from "@/components/dashboard-locale";
 import { updateRegistration } from "@/lib/registrations.functions";
 import {
   openPdfPreviewWindow,
@@ -23,10 +22,10 @@ import { Label } from "@/components/ui/label";
 import { StatusBadge } from "@/components/admin-rows";
 import { Download, LoaderCircle, Printer, Trash2, X } from "lucide-react";
 
-function formatWhen(iso: string): string {
+function formatWhen(iso: string, locale: string): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return iso;
-  return new Intl.DateTimeFormat("hi-IN", {
+  return new Intl.DateTimeFormat(locale, {
     timeZone: "Asia/Kolkata",
     day: "2-digit",
     month: "short",
@@ -98,6 +97,7 @@ export function AdminPatientProfile({
   onSaved: (next: RegistrationRow) => void;
   onDelete?: (row: RegistrationRow) => void;
 }) {
+  const { t, locale } = useDashboardI18n();
   const [form, setForm] = useState<FormState>(() => fromRow(row));
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState("");
@@ -159,7 +159,7 @@ export function AdminPatientProfile({
       onSaved({ ...updated, duplicate: row.duplicate });
       setEditing(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "सहेजा नहीं जा सका।");
+      setError(err instanceof Error ? err.message : t("profile.saveFail"));
     } finally {
       setBusy(false);
     }
@@ -189,7 +189,7 @@ export function AdminPatientProfile({
       } catch {
         // Ignore a blocked close.
       }
-      setError("स्लिप PDF नहीं बन सका। कृपया पुनः प्रयास करें।");
+      setError(t("profile.pdfFail"));
     } finally {
       setPdfBusy(null);
     }
@@ -202,13 +202,13 @@ export function AdminPatientProfile({
     try {
       await printRegistrationPdf(row.registrationNumber, slipDetailsFromRow(row));
     } catch {
-      setError("प्रिंट नहीं हो सका। कृपया पुनः प्रयास करें।");
+      setError(t("profile.printFail"));
     } finally {
       setPdfBusy(null);
     }
   }
 
-  const warning = duplicateLabel(row.duplicate);
+  const warning = tDuplicate(t, row.duplicate);
 
   return (
     <div
@@ -233,9 +233,9 @@ export function AdminPatientProfile({
               <StatusBadge status={row.status} />
             </div>
           </div>
-          <Button variant="secondary" size="sm" onClick={onClose} aria-label="बंद करें">
+          <Button variant="secondary" size="sm" onClick={onClose} aria-label={t("profile.close")}>
             <X className="size-4" aria-hidden="true" />
-            बंद करें
+            {t("profile.close")}
           </Button>
         </header>
 
@@ -248,30 +248,30 @@ export function AdminPatientProfile({
 
           {editing ? (
             <form onSubmit={save} className="grid gap-3 sm:grid-cols-2">
-              <Field label="नाम">
+              <Field label={t("profile.name")}>
                 <Input value={form.name} onChange={(e) => set("name", e.target.value)} required />
               </Field>
-              <Field label="पिता/पति का नाम">
+              <Field label={t("profile.fatherName")}>
                 <Input
                   value={form.fatherOrHusbandName}
                   onChange={(e) => set("fatherOrHusbandName", e.target.value)}
                   required
                 />
               </Field>
-              <Field label="ग्राम">
+              <Field label={t("profile.village")}>
                 <Input value={form.village} onChange={(e) => set("village", e.target.value)} required />
               </Field>
-              <Field label="पोस्ट">
+              <Field label={t("profile.post")}>
                 <Input value={form.post} onChange={(e) => set("post", e.target.value)} required />
               </Field>
-              <Field label="न्याय पंचायत">
+              <Field label={t("profile.nyaya")}>
                 <Input
                   value={form.nyayaPanchayat}
                   onChange={(e) => set("nyayaPanchayat", e.target.value)}
                   required
                 />
               </Field>
-              <Field label="ब्लॉक">
+              <Field label={t("profile.block")}>
                 <NativeSelect value={form.block} onChange={(e) => set("block", e.target.value)} required>
                   {BLOCKS.map((block) => (
                     <option key={block} value={block}>
@@ -280,13 +280,13 @@ export function AdminPatientProfile({
                   ))}
                 </NativeSelect>
               </Field>
-              <Field label="तहसील">
+              <Field label={t("profile.tehsil")}>
                 <Input value={form.tehsil} onChange={(e) => set("tehsil", e.target.value)} required />
               </Field>
-              <Field label="जनपद">
+              <Field label={t("profile.district")}>
                 <Input value={form.district} onChange={(e) => set("district", e.target.value)} required />
               </Field>
-              <Field label="मोबाइल">
+              <Field label={t("profile.mobile")}>
                 <Input
                   inputMode="numeric"
                   maxLength={10}
@@ -295,54 +295,54 @@ export function AdminPatientProfile({
                   required
                 />
               </Field>
-              <Field label="स्थिति">
+              <Field label={t("profile.status")}>
                 <NativeSelect
                   value={form.status}
                   onChange={(e) => set("status", e.target.value as RegistrationStatus)}
                 >
-                  <optgroup label="कार्यप्रवाह">
+                  <optgroup label={t("status.groupWorkflow")}>
                     {WORKFLOW_STATUSES.map((s) => (
                       <option key={s.value} value={s.value}>
-                        {s.label}
+                        {tStatus(t, s.value)}
                       </option>
                     ))}
                   </optgroup>
-                  <optgroup label="अन्य">
+                  <optgroup label={t("status.groupOther")}>
                     {OTHER_STATUSES.map((s) => (
                       <option key={s.value} value={s.value}>
-                        {s.label}
+                        {tStatus(t, s.value)}
                       </option>
                     ))}
                   </optgroup>
                 </NativeSelect>
               </Field>
-              <Field label="नोट" wide>
+              <Field label={t("profile.note")} wide>
                 <Textarea value={form.note} onChange={(e) => set("note", e.target.value)} maxLength={500} />
               </Field>
 
-              <h3 className="sm:col-span-2 mt-2 font-display text-lg text-navy">फॉलो-अप</h3>
-              <Field label="जाँच तिथि">
+              <h3 className="sm:col-span-2 mt-2 font-display text-lg text-navy">{t("profile.followUp")}</h3>
+              <Field label={t("profile.screeningDate")}>
                 <Input
                   type="date"
                   value={form.screeningDate}
                   onChange={(e) => set("screeningDate", e.target.value)}
                 />
               </Field>
-              <Field label="ऑपरेशन तिथि">
+              <Field label={t("profile.surgeryDate")}>
                 <Input
                   type="date"
                   value={form.surgeryDate}
                   onChange={(e) => set("surgeryDate", e.target.value)}
                 />
               </Field>
-              <Field label="फॉलो-अप तिथि">
+              <Field label={t("profile.followUpDate")}>
                 <Input
                   type="date"
                   value={form.followUpDate}
                   onChange={(e) => set("followUpDate", e.target.value)}
                 />
               </Field>
-              <Field label="फॉलो-अप स्थिति">
+              <Field label={t("profile.followUpStatus")}>
                 <NativeSelect
                   value={form.followUpStatus}
                   onChange={(e) => set("followUpStatus", e.target.value as FormState["followUpStatus"])}
@@ -350,12 +350,12 @@ export function AdminPatientProfile({
                   <option value="">—</option>
                   {FOLLOW_UP_STATUSES.map((s) => (
                     <option key={s.value} value={s.value}>
-                      {s.label}
+                      {tFollowUp(t, s.value)}
                     </option>
                   ))}
                 </NativeSelect>
               </Field>
-              <Field label="फॉलो-अप नोट" wide>
+              <Field label={t("profile.followUpNotes")} wide>
                 <Textarea
                   value={form.followUpNotes}
                   onChange={(e) => set("followUpNotes", e.target.value)}
@@ -370,7 +370,7 @@ export function AdminPatientProfile({
               ) : null}
               <div className="sm:col-span-2 flex flex-wrap gap-2">
                 <Button type="submit" disabled={busy}>
-                  {busy ? "सहेजा जा रहा है…" : "सहेजें"}
+                  {busy ? t("profile.saving") : t("profile.save")}
                 </Button>
                 <Button
                   type="button"
@@ -382,7 +382,7 @@ export function AdminPatientProfile({
                   }}
                   disabled={busy}
                 >
-                  रद्द करें
+                  {t("profile.cancel")}
                 </Button>
               </div>
             </form>
@@ -390,45 +390,45 @@ export function AdminPatientProfile({
             <>
               <div className="grid gap-3 sm:grid-cols-2">
                 <section className="rounded-lg bg-cream p-3">
-                  <h3 className="mb-2 text-xs font-semibold tracking-wide text-muted">रोगी जानकारी</h3>
+                  <h3 className="mb-2 text-xs font-semibold tracking-wide text-muted">{t("profile.patientInfo")}</h3>
                   <dl className="grid gap-1 text-sm">
-                    <Item k="पिता/पति" v={row.fatherOrHusbandName} />
-                    <Item k="मोबाइल" v={row.mobile} />
-                    <Item k="स्थिति" v={statusLabel(row.status)} />
+                    <Item k={t("profile.father")} v={row.fatherOrHusbandName} />
+                    <Item k={t("profile.mobile")} v={row.mobile} />
+                    <Item k={t("profile.status")} v={tStatus(t, row.status)} />
                   </dl>
                 </section>
                 <section className="rounded-lg bg-cream p-3">
-                  <h3 className="mb-2 text-xs font-semibold tracking-wide text-muted">स्थान</h3>
+                  <h3 className="mb-2 text-xs font-semibold tracking-wide text-muted">{t("profile.location")}</h3>
                   <dl className="grid gap-1 text-sm">
-                    <Item k="ग्राम" v={row.village} />
-                    <Item k="पोस्ट" v={row.post} />
-                    <Item k="न्याय पंचायत" v={row.nyayaPanchayat} />
-                    <Item k="ब्लॉक" v={row.block} />
-                    <Item k="तहसील" v={row.tehsil} />
-                    <Item k="जनपद" v={row.district} />
+                    <Item k={t("profile.village")} v={row.village} />
+                    <Item k={t("profile.post")} v={row.post} />
+                    <Item k={t("profile.nyaya")} v={row.nyayaPanchayat} />
+                    <Item k={t("profile.block")} v={row.block} />
+                    <Item k={t("profile.tehsil")} v={row.tehsil} />
+                    <Item k={t("profile.district")} v={row.district} />
                   </dl>
                 </section>
                 <section className="rounded-lg bg-cream p-3 sm:col-span-2">
-                  <h3 className="mb-2 text-xs font-semibold tracking-wide text-muted">पंजीकरण</h3>
+                  <h3 className="mb-2 text-xs font-semibold tracking-wide text-muted">{t("profile.registration")}</h3>
                   <dl className="grid gap-1 text-sm sm:grid-cols-2">
-                    <Item k="पंजीकरण संख्या" v={row.registrationNumber} />
-                    <Item k="पंजीकरण तिथि" v={formatWhen(row.createdAt)} />
-                    <Item k="जाँच तिथि" v={row.screeningDate} />
-                    <Item k="ऑपरेशन तिथि" v={row.surgeryDate} />
-                    <Item k="फॉलो-अप तिथि" v={row.followUpDate} />
-                    <Item k="फॉलो-अप स्थिति" v={followUpStatusLabel(row.followUpStatus)} />
+                    <Item k={t("profile.regNo")} v={row.registrationNumber} />
+                    <Item k={t("profile.regDate")} v={formatWhen(row.createdAt, locale)} />
+                    <Item k={t("profile.screeningDate")} v={row.screeningDate} />
+                    <Item k={t("profile.surgeryDate")} v={row.surgeryDate} />
+                    <Item k={t("profile.followUpDate")} v={row.followUpDate} />
+                    <Item k={t("profile.followUpStatus")} v={tFollowUp(t, row.followUpStatus)} />
                   </dl>
                 </section>
               </div>
               {row.note ? (
                 <p className="mt-3 text-sm text-muted">
-                  <span className="font-medium text-navy">नोट: </span>
+                  <span className="font-medium text-navy">{t("profile.note")}: </span>
                   {row.note}
                 </p>
               ) : null}
               {row.followUpNotes ? (
                 <p className="mt-2 text-sm text-muted">
-                  <span className="font-medium text-navy">फॉलो-अप नोट: </span>
+                  <span className="font-medium text-navy">{t("profile.followUpNotes")}: </span>
                   {row.followUpNotes}
                 </p>
               ) : null}
@@ -439,15 +439,15 @@ export function AdminPatientProfile({
               ) : null}
               {openPdf ? (
                 <p className="mt-3 text-sm text-muted">
-                  PDF तैयार है।{" "}
+                  {t("profile.pdfReady")}{" "}
                   <a href={openPdf.url} target="_blank" className="font-semibold text-maroon hover:underline">
-                    PDF खोलें / सेव करें
+                    {t("profile.openPdf")}
                   </a>
                 </p>
               ) : null}
               <div className="mt-4 flex flex-wrap gap-2">
                 <Button size="sm" onClick={() => setEditing(true)}>
-                  संपादित करें
+                  {t("profile.edit")}
                 </Button>
                 <Button
                   variant="navy"
@@ -460,7 +460,7 @@ export function AdminPatientProfile({
                   ) : (
                     <Download className="size-4" aria-hidden="true" />
                   )}
-                  स्लिप डाउनलोड
+                  {t("profile.downloadSlip")}
                 </Button>
                 <Button
                   variant="secondary"
@@ -473,12 +473,12 @@ export function AdminPatientProfile({
                   ) : (
                     <Printer className="size-4" aria-hidden="true" />
                   )}
-                  प्रिंट
+                  {t("profile.print")}
                 </Button>
                 {canDelete ? (
                   <Button variant="danger" size="sm" onClick={() => onDelete?.(row)}>
                     <Trash2 className="size-4" aria-hidden="true" />
-                    पंजीकरण हटाएँ
+                    {t("profile.delete")}
                   </Button>
                 ) : null}
               </div>

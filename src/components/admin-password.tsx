@@ -3,6 +3,7 @@ import { changeAdminPassword, recoverAdminPassword } from "@/lib/admin-auth.func
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useDashboardI18n } from "@/components/dashboard-locale";
 
 function PasswordFields({
   currentId,
@@ -23,12 +24,13 @@ function PasswordFields({
   onNext: (value: string) => void;
   onConfirm: (value: string) => void;
 }) {
+  const { t } = useDashboardI18n();
   return (
     <>
       {includeCurrent ? (
         <>
           <Label className="mt-4 mb-1.5" htmlFor={`${currentId}-current`}>
-            वर्तमान पासवर्ड
+            {t("password.current")}
           </Label>
           <Input
             id={`${currentId}-current`}
@@ -41,7 +43,7 @@ function PasswordFields({
         </>
       ) : null}
       <Label className="mt-4 mb-1.5" htmlFor={`${currentId}-new`}>
-        नया पासवर्ड
+        {t("password.new")}
       </Label>
       <Input
         id={`${currentId}-new`}
@@ -54,7 +56,7 @@ function PasswordFields({
         required
       />
       <Label className="mt-4 mb-1.5" htmlFor={`${currentId}-confirm`}>
-        नया पासवर्ड दोबारा दर्ज करें
+        {t("password.confirm")}
       </Label>
       <Input
         id={`${currentId}-confirm`}
@@ -71,6 +73,7 @@ function PasswordFields({
 }
 
 export function AdminPasswordChangeForm({ onCancel }: { onCancel: () => void }) {
+  const { t } = useDashboardI18n();
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -95,9 +98,9 @@ export function AdminPasswordChangeForm({ onCancel }: { onCancel: () => void }) 
       setCurrent("");
       setNext("");
       setConfirm("");
-      setSuccess("पासवर्ड बदल गया।");
+      setSuccess(t("password.changed"));
     } catch {
-      setError("पासवर्ड नहीं बदला जा सका। पुनः प्रयास करें।");
+      setError(t("password.changeFail"));
     } finally {
       setBusy(false);
     }
@@ -107,8 +110,8 @@ export function AdminPasswordChangeForm({ onCancel }: { onCancel: () => void }) 
     <form onSubmit={submit} className="overflow-hidden rounded-xl bg-paper shadow-[var(--shadow-card)]">
       <div className="h-1 bg-navy" aria-hidden="true" />
       <div className="p-5">
-      <h2 className="font-display text-lg text-navy">पासवर्ड बदलें</h2>
-      <p className="mt-1 text-sm text-muted">वर्तमान पासवर्ड की पुष्टि के बाद नया पासवर्ड सेट होगा।</p>
+      <h2 className="font-display text-lg text-navy">{t("password.title")}</h2>
+      <p className="mt-1 text-sm text-muted">{t("password.hint")}</p>
       <PasswordFields
         currentId="change"
         includeCurrent
@@ -131,10 +134,10 @@ export function AdminPasswordChangeForm({ onCancel }: { onCancel: () => void }) 
       ) : null}
       <div className="mt-5 flex flex-wrap gap-2">
         <Button type="submit" disabled={busy}>
-          {busy ? "सहेजा जा रहा है…" : "पासवर्ड सहेजें"}
+          {busy ? t("password.saving") : t("password.save")}
         </Button>
         <Button type="button" variant="secondary" onClick={onCancel} disabled={busy}>
-          बंद करें
+          {t("password.close")}
         </Button>
       </div>
       </div>

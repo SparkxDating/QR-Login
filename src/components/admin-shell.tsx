@@ -2,6 +2,7 @@ import { type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
 import { CAMP } from "@/lib/camp";
 import { Button } from "@/components/ui/button";
+import { LanguageSwitcher, useDashboardI18n } from "@/components/dashboard-locale";
 import {
   Activity,
   BarChart3,
@@ -27,19 +28,19 @@ export type AdminSection =
   | "settings"
   | "super";
 
-const MAIN_NAV: { id: AdminSection; label: string; icon: typeof LayoutDashboard }[] = [
-  { id: "overview", label: "अवलोकन", icon: LayoutDashboard },
-  { id: "registrations", label: "पंजीकरण", icon: Users },
-  { id: "analytics", label: "आँकड़े", icon: BarChart3 },
-  { id: "reports", label: "रिपोर्ट", icon: FileText },
-  { id: "settings", label: "सेटिंग", icon: Settings },
+const MAIN_NAV: { id: AdminSection; icon: typeof LayoutDashboard; labelKey: "nav.overview" | "nav.registrations" | "nav.analytics" | "nav.reports" | "nav.settings" }[] = [
+  { id: "overview", labelKey: "nav.overview", icon: LayoutDashboard },
+  { id: "registrations", labelKey: "nav.registrations", icon: Users },
+  { id: "analytics", labelKey: "nav.analytics", icon: BarChart3 },
+  { id: "reports", labelKey: "nav.reports", icon: FileText },
+  { id: "settings", labelKey: "nav.settings", icon: Settings },
 ];
 
-const SUPER_NAV: { id: string; label: string; icon: typeof UserCog }[] = [
-  { id: "sa-accounts", label: "एडमिन खाते", icon: UserCog },
-  { id: "sa-security", label: "सुरक्षा", icon: KeyRound },
-  { id: "sa-logs", label: "गतिविधि लॉग", icon: Activity },
-  { id: "sa-delete", label: "पंजीकरण हटाना", icon: Trash2 },
+const SUPER_NAV: { id: string; icon: typeof UserCog; labelKey: "nav.saAccounts" | "nav.saSecurity" | "nav.saLogs" | "nav.saDelete" }[] = [
+  { id: "sa-accounts", labelKey: "nav.saAccounts", icon: UserCog },
+  { id: "sa-security", labelKey: "nav.saSecurity", icon: KeyRound },
+  { id: "sa-logs", labelKey: "nav.saLogs", icon: Activity },
+  { id: "sa-delete", labelKey: "nav.saDelete", icon: Trash2 },
 ];
 
 export function AdminShell({
@@ -61,23 +62,26 @@ export function AdminShell({
   onLogout: () => void;
   children: ReactNode;
 }) {
+  const { t } = useDashboardI18n();
+  const roleBadge = isSuperAdmin ? t("role.badgeSuper") : t("role.badgeAdmin");
+
   return (
     <div className="min-h-dvh bg-cream text-ink">
       <header className="sticky top-0 z-30 border-b border-line bg-paper/95 backdrop-blur-sm">
         <div className={`h-1 ${isSuperAdmin ? "bg-maroon" : "bg-saffron"}`} aria-hidden="true" />
-        <div className="flex items-center gap-3 px-3 py-2.5 lg:px-5">
+        <div className="flex items-center gap-2 px-3 py-2.5 sm:gap-3 lg:px-5">
           <button
             type="button"
-            className="flex size-11 items-center justify-center rounded-md text-navy hover:bg-cream lg:hidden"
+            className="flex size-11 shrink-0 items-center justify-center rounded-md text-navy hover:bg-cream lg:hidden"
             onClick={() => onMenu(!menuOpen)}
-            aria-label={menuOpen ? "मेनू बंद करें" : "मेनू खोलें"}
+            aria-label={menuOpen ? t("nav.closeMenu") : t("nav.openMenu")}
           >
             {menuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
           </button>
           <img
             src={CAMP.logo.src}
             alt={CAMP.logo.alt}
-            className="size-11 rounded-md object-cover ring-1 ring-line"
+            className="size-11 shrink-0 rounded-md object-cover ring-1 ring-line"
             width={44}
             height={44}
           />
@@ -91,7 +95,7 @@ export function AdminShell({
                   isSuperAdmin ? "bg-maroon text-paper" : "bg-navy text-paper"
                 }`}
               >
-                {isSuperAdmin ? "SUPER ADMIN" : "ADMIN"}
+                {roleBadge}
               </span>
             </div>
             <p className="truncate text-xs text-muted">{CAMP.title}</p>
@@ -101,22 +105,23 @@ export function AdminShell({
               isSuperAdmin ? "bg-maroon text-paper" : "bg-navy text-paper"
             }`}
           >
-            {isSuperAdmin ? "SUPER ADMIN" : "ADMIN"}
+            {roleBadge}
           </span>
+          <LanguageSwitcher />
           <div className="hidden items-center gap-2 md:flex">
             <Link
               to="/register"
               className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-saffron px-3 text-sm font-semibold text-paper hover:bg-saffron-deep"
             >
               <Plus className="size-4" aria-hidden="true" />
-              नया पंजीकरण
+              {t("nav.newRegistration")}
             </Link>
             <Button variant="secondary" size="sm" onClick={onExport}>
               CSV
             </Button>
             <Button variant="ghost" size="sm" onClick={onLogout}>
               <LogOut className="size-4" aria-hidden="true" />
-              लॉगआउट
+              {t("nav.logout")}
             </Button>
           </div>
         </div>
@@ -126,7 +131,7 @@ export function AdminShell({
             className="inline-flex min-h-11 shrink-0 items-center gap-1 rounded-md bg-saffron px-3 text-sm font-semibold text-paper"
           >
             <Plus className="size-4" />
-            नया पंजीकरण
+            {t("nav.newRegistration")}
           </Link>
           <button
             type="button"
@@ -141,7 +146,7 @@ export function AdminShell({
             onClick={onLogout}
           >
             <LogOut className="size-4" />
-            लॉगआउट
+            {t("nav.logout")}
           </button>
         </div>
       </header>
@@ -151,7 +156,7 @@ export function AdminShell({
           <button
             type="button"
             className="fixed inset-0 z-20 bg-navy/40 lg:hidden"
-            aria-label="मेनू बंद करें"
+            aria-label={t("nav.closeMenu")}
             onClick={() => onMenu(false)}
           />
         ) : null}
@@ -160,8 +165,8 @@ export function AdminShell({
             menuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
           }`}
         >
-          <p className="px-2 text-xs font-semibold tracking-wide text-muted">नेविगेशन</p>
-          <nav className="mt-2 grid gap-1" aria-label="डैशबोर्ड">
+          <p className="px-2 text-xs font-semibold tracking-wide text-muted">{t("nav.navigation")}</p>
+          <nav className="mt-2 grid gap-1" aria-label={t("nav.dashboard")}>
             {MAIN_NAV.map((item) => {
               const Icon = item.icon;
               const active = section === item.id;
@@ -176,7 +181,7 @@ export function AdminShell({
                   onClick={() => onSection(item.id)}
                 >
                   <Icon className="size-4 shrink-0" aria-hidden="true" />
-                  {item.label}
+                  {t(item.labelKey)}
                 </button>
               );
             })}
@@ -185,9 +190,9 @@ export function AdminShell({
             <div className="mt-6 overflow-hidden rounded-lg bg-maroon/10 ring-1 ring-maroon/20">
               <p className="flex items-center gap-1.5 bg-maroon px-3 py-2 text-xs font-semibold tracking-wide text-paper">
                 <Shield className="size-3.5" aria-hidden="true" />
-                SUPER ADMIN
+                {t("role.badgeSuper")}
               </p>
-              <nav className="grid gap-1 p-2" aria-label="सुपर एडमिन">
+              <nav className="grid gap-1 p-2" aria-label={t("nav.superAdminAria")}>
                 <button
                   type="button"
                   aria-current={section === "super" ? "page" : undefined}
@@ -197,7 +202,7 @@ export function AdminShell({
                   onClick={() => onSection("super")}
                 >
                   <Shield className="size-4 shrink-0" aria-hidden="true" />
-                  Super Admin
+                  {t("nav.superAdmin")}
                 </button>
                 {SUPER_NAV.map((item) => {
                   const Icon = item.icon;
@@ -209,7 +214,7 @@ export function AdminShell({
                       onClick={() => onSection("super", item.id)}
                     >
                       <Icon className="size-3.5 shrink-0" aria-hidden="true" />
-                      {item.label}
+                      {t(item.labelKey)}
                     </button>
                   );
                 })}

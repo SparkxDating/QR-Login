@@ -3,9 +3,19 @@ import type { AdminRole } from "@/lib/admin";
 import { adminLogout, checkAdminSession } from "@/lib/registrations.functions";
 import { AdminLogin } from "@/components/admin-login";
 import { AdminHome } from "@/components/admin-home";
+import { DashboardLocaleProvider, useDashboardI18n } from "@/components/dashboard-locale";
 import { LoaderCircle } from "lucide-react";
 
 export function AdminDashboard() {
+  return (
+    <DashboardLocaleProvider>
+      <AdminDashboardInner />
+    </DashboardLocaleProvider>
+  );
+}
+
+function AdminDashboardInner() {
+  const { t } = useDashboardI18n();
   const [ready, setReady] = useState(false);
   const [authed, setAuthed] = useState(false);
   const [configured, setConfigured] = useState(true);
@@ -34,7 +44,7 @@ export function AdminDashboard() {
   if (!ready) {
     return (
       <div className="grid min-h-dvh place-items-center bg-cream text-muted">
-        <LoaderCircle className="size-8 animate-spin" aria-label="लोड हो रहा है" />
+        <LoaderCircle className="size-8 animate-spin" aria-label={t("loading")} />
       </div>
     );
   }
