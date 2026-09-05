@@ -36,10 +36,10 @@ const MAIN_NAV: { id: AdminSection; label: string; icon: typeof LayoutDashboard 
 ];
 
 const SUPER_NAV: { id: string; label: string; icon: typeof UserCog }[] = [
-  { id: "sa-accounts", label: "Admin Accounts", icon: UserCog },
-  { id: "sa-security", label: "Security", icon: KeyRound },
-  { id: "sa-logs", label: "Activity Logs", icon: Activity },
-  { id: "sa-delete", label: "Delete Management", icon: Trash2 },
+  { id: "sa-accounts", label: "एडमिन खाते", icon: UserCog },
+  { id: "sa-security", label: "सुरक्षा", icon: KeyRound },
+  { id: "sa-logs", label: "गतिविधि लॉग", icon: Activity },
+  { id: "sa-delete", label: "पंजीकरण हटाना", icon: Trash2 },
 ];
 
 export function AdminShell({
@@ -64,7 +64,7 @@ export function AdminShell({
   return (
     <div className="min-h-dvh bg-cream text-ink">
       <header className="sticky top-0 z-30 border-b border-line bg-paper/95 backdrop-blur-sm">
-        <div className="h-0.5 bg-saffron" aria-hidden="true" />
+        <div className={`h-1 ${isSuperAdmin ? "bg-maroon" : "bg-saffron"}`} aria-hidden="true" />
         <div className="flex items-center gap-3 px-3 py-2.5 lg:px-5">
           <button
             type="button"
@@ -182,12 +182,12 @@ export function AdminShell({
             })}
           </nav>
           {isSuperAdmin ? (
-            <div className="mt-6 rounded-lg bg-maroon/10 p-2 ring-1 ring-maroon/15">
-              <p className="flex items-center gap-1.5 px-2 py-1 text-xs font-semibold tracking-wide text-maroon">
+            <div className="mt-6 overflow-hidden rounded-lg bg-maroon/10 ring-1 ring-maroon/20">
+              <p className="flex items-center gap-1.5 bg-maroon px-3 py-2 text-xs font-semibold tracking-wide text-paper">
                 <Shield className="size-3.5" aria-hidden="true" />
                 SUPER ADMIN
               </p>
-              <nav className="mt-1 grid gap-1" aria-label="सुपर एडमिन">
+              <nav className="grid gap-1 p-2" aria-label="सुपर एडमिन">
                 <button
                   type="button"
                   aria-current={section === "super" ? "page" : undefined}
@@ -218,7 +218,9 @@ export function AdminShell({
           ) : null}
         </aside>
 
-        <main className="min-w-0 flex-1 px-3 py-4 sm:px-5 sm:py-6">{children}</main>
+        <main className="min-w-0 flex-1 px-3 py-4 sm:px-5 sm:py-6">
+          <div className="mx-auto max-w-7xl">{children}</div>
+        </main>
       </div>
     </div>
   );
@@ -239,7 +241,7 @@ export function SectionTitle({
         {kicker ? (
           <p className="text-xs font-semibold tracking-wide text-saffron">{kicker}</p>
         ) : null}
-        <h1 className="font-display text-2xl leading-tight text-navy">{title}</h1>
+        <h1 className="font-display text-2xl leading-tight text-navy sm:text-3xl">{title}</h1>
       </div>
       {action}
     </div>
