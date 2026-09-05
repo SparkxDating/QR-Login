@@ -104,7 +104,9 @@ export function AdminPasswordChangeForm({ onCancel }: { onCancel: () => void }) 
   }
 
   return (
-    <form onSubmit={submit} className="rounded-xl bg-paper p-5 shadow-[var(--shadow-card)]">
+    <form onSubmit={submit} className="overflow-hidden rounded-xl bg-paper shadow-[var(--shadow-card)]">
+      <div className="h-1 bg-navy" aria-hidden="true" />
+      <div className="p-5">
       <h2 className="font-display text-lg text-navy">पासवर्ड बदलें</h2>
       <p className="mt-1 text-sm text-muted">वर्तमान पासवर्ड की पुष्टि के बाद नया पासवर्ड सेट होगा।</p>
       <PasswordFields
@@ -134,6 +136,7 @@ export function AdminPasswordChangeForm({ onCancel }: { onCancel: () => void }) 
         <Button type="button" variant="secondary" onClick={onCancel} disabled={busy}>
           बंद करें
         </Button>
+      </div>
       </div>
     </form>
   );
