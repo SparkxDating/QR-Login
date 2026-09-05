@@ -68,7 +68,7 @@ export function AdminShell({
         <div className="flex items-center gap-3 px-3 py-2.5 lg:px-5">
           <button
             type="button"
-            className="flex size-10 items-center justify-center rounded-md text-navy hover:bg-cream lg:hidden"
+            className="flex size-11 items-center justify-center rounded-md text-navy hover:bg-cream lg:hidden"
             onClick={() => onMenu(!menuOpen)}
             aria-label={menuOpen ? "मेनू बंद करें" : "मेनू खोलें"}
           >
@@ -77,14 +77,23 @@ export function AdminShell({
           <img
             src={CAMP.logo.src}
             alt={CAMP.logo.alt}
-            className="size-10 rounded-md object-cover ring-1 ring-line"
-            width={40}
-            height={40}
+            className="size-11 rounded-md object-cover ring-1 ring-line"
+            width={44}
+            height={44}
           />
           <div className="min-w-0 flex-1">
-            <p className="truncate font-display text-sm leading-tight text-maroon sm:text-base">
-              {CAMP.foundation}
-            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="truncate font-display text-sm leading-tight text-maroon sm:text-base">
+                {CAMP.foundation}
+              </p>
+              <span
+                className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold tracking-wide sm:hidden ${
+                  isSuperAdmin ? "bg-maroon text-paper" : "bg-navy text-paper"
+                }`}
+              >
+                {isSuperAdmin ? "SUPER ADMIN" : "ADMIN"}
+              </span>
+            </div>
             <p className="truncate text-xs text-muted">{CAMP.title}</p>
           </div>
           <span
@@ -97,7 +106,7 @@ export function AdminShell({
           <div className="hidden items-center gap-2 md:flex">
             <Link
               to="/register"
-              className="inline-flex min-h-10 items-center justify-center gap-2 rounded-sm bg-saffron px-3 text-sm font-semibold text-paper hover:bg-saffron-deep"
+              className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-saffron px-3 text-sm font-semibold text-paper hover:bg-saffron-deep"
             >
               <Plus className="size-4" aria-hidden="true" />
               नया पंजीकरण
@@ -111,31 +120,24 @@ export function AdminShell({
             </Button>
           </div>
         </div>
-        <div className="flex gap-2 overflow-x-auto border-t border-line px-3 py-2 md:hidden">
-          <span
-            className={`shrink-0 self-center rounded-full px-2.5 py-1 text-xs font-semibold ${
-              isSuperAdmin ? "bg-maroon text-paper" : "bg-navy text-paper"
-            }`}
-          >
-            {isSuperAdmin ? "SUPER ADMIN" : "ADMIN"}
-          </span>
+        <div className="flex gap-2 overflow-x-auto px-3 py-2 md:hidden">
           <Link
             to="/register"
-            className="inline-flex min-h-10 shrink-0 items-center gap-1 rounded-sm bg-saffron px-3 text-sm font-semibold text-paper"
+            className="inline-flex min-h-11 shrink-0 items-center gap-1 rounded-md bg-saffron px-3 text-sm font-semibold text-paper"
           >
             <Plus className="size-4" />
             नया पंजीकरण
           </Link>
           <button
             type="button"
-            className="inline-flex min-h-10 shrink-0 items-center rounded-sm bg-paper px-3 text-sm font-semibold text-navy ring-1 ring-line"
+            className="inline-flex min-h-11 shrink-0 items-center rounded-md bg-paper px-3 text-sm font-semibold text-navy ring-1 ring-line"
             onClick={onExport}
           >
             CSV
           </button>
           <button
             type="button"
-            className="inline-flex min-h-10 shrink-0 items-center gap-1 rounded-sm px-3 text-sm font-semibold text-maroon"
+            className="inline-flex min-h-11 shrink-0 items-center gap-1 rounded-md px-3 text-sm font-semibold text-maroon"
             onClick={onLogout}
           >
             <LogOut className="size-4" />
@@ -144,7 +146,7 @@ export function AdminShell({
         </div>
       </header>
 
-      <div className="lg:flex lg:min-h-[calc(100dvh-4rem)]">
+      <div className="lg:flex lg:min-h-[calc(100dvh-4.5rem)]">
         {menuOpen ? (
           <button
             type="button"
@@ -154,7 +156,7 @@ export function AdminShell({
           />
         ) : null}
         <aside
-          className={`fixed inset-y-0 left-0 z-20 w-64 overflow-y-auto border-r border-line bg-paper px-3 py-4 pt-20 transition-transform duration-200 ease-[var(--ease-out)] lg:static lg:z-0 lg:block lg:w-60 lg:shrink-0 lg:pt-4 ${
+          className={`fixed inset-y-0 left-0 z-20 w-64 overflow-y-auto border-r border-line bg-paper px-3 py-4 pt-24 transition-transform duration-200 ease-[var(--ease-out)] lg:sticky lg:top-[4.5rem] lg:z-0 lg:block lg:h-[calc(100dvh-4.5rem)] lg:w-60 lg:shrink-0 lg:pt-5 ${
             menuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
           }`}
         >
@@ -168,7 +170,7 @@ export function AdminShell({
                   key={item.id}
                   type="button"
                   aria-current={active ? "page" : undefined}
-                  className={`flex min-h-11 items-center gap-2 rounded-md px-3 text-left text-sm font-medium ${
+                  className={`flex min-h-11 items-center gap-2.5 rounded-md px-3 text-left text-sm font-medium ${
                     active ? "bg-maroon text-paper" : "text-navy hover:bg-cream"
                   }`}
                   onClick={() => onSection(item.id)}
@@ -180,7 +182,7 @@ export function AdminShell({
             })}
           </nav>
           {isSuperAdmin ? (
-            <div className="mt-6 rounded-lg bg-maroon/10 p-2">
+            <div className="mt-6 rounded-lg bg-maroon/10 p-2 ring-1 ring-maroon/15">
               <p className="flex items-center gap-1.5 px-2 py-1 text-xs font-semibold tracking-wide text-maroon">
                 <Shield className="size-3.5" aria-hidden="true" />
                 SUPER ADMIN
@@ -203,7 +205,7 @@ export function AdminShell({
                     <button
                       key={item.id}
                       type="button"
-                      className="flex min-h-10 items-center gap-2 rounded-md px-3 pl-4 text-left text-sm text-muted hover:bg-paper hover:text-navy"
+                      className="flex min-h-11 items-center gap-2 rounded-md px-3 pl-4 text-left text-sm text-muted hover:bg-paper hover:text-navy"
                       onClick={() => onSection("super", item.id)}
                     >
                       <Icon className="size-3.5 shrink-0" aria-hidden="true" />
@@ -232,10 +234,12 @@ export function SectionTitle({
   action?: ReactNode;
 }) {
   return (
-    <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+    <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
       <div>
-        {kicker ? <p className="text-xs font-semibold tracking-wide text-saffron">{kicker}</p> : null}
-        <h1 className="font-display text-2xl text-navy">{title}</h1>
+        {kicker ? (
+          <p className="text-xs font-semibold tracking-wide text-saffron">{kicker}</p>
+        ) : null}
+        <h1 className="font-display text-2xl leading-tight text-navy">{title}</h1>
       </div>
       {action}
     </div>
