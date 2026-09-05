@@ -28,9 +28,11 @@ import { AdminShell, SectionTitle, type AdminSection } from "@/components/admin-
 import {
   CalendarDays,
   CheckCircle2,
+  ClipboardList,
   Clock,
   Download,
   Eye,
+  Percent,
   Printer,
   Search,
   Stethoscope,
@@ -305,23 +307,34 @@ export function AdminHome({ role, onLogout }: { role: AdminRole; onLogout: () =>
       {section === "overview" ? (
         <div>
           <SectionTitle kicker="डैशबोर्ड" title="अवलोकन" />
-          <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
+            <Stat
+              label="कुल पंजीकरण"
+              value={visits.totalRegistrations || total}
+              hint="सभी समय"
+              tone="maroon"
+              icon={<ClipboardList className="size-5" aria-hidden="true" />}
+              trend={today > 0 ? { label: `आज ${today}`, tone: "success" } : { label: "आज 0", tone: "muted" }}
+            />
             <Stat
               label="कुल विज़िट"
               value={visits.totalVisits}
               hint="सभी लिंक विज़िट"
+              tone="navy"
               icon={<Eye className="size-5" aria-hidden="true" />}
             />
             <Stat
               label="अद्वितीय आगंतुक"
               value={visits.uniqueVisitors}
               hint="अनाम ब्राउज़र/डिवाइस अनुमान"
+              tone="info"
               icon={<Users className="size-5" aria-hidden="true" />}
             />
             <Stat
               label="अभी ऑनलाइन"
               value={visits.online}
               hint="पिछले 5 मिनट में सक्रिय"
+              tone="success"
               icon={<UserCheck className="size-5" aria-hidden="true" />}
               trend={
                 visits.online > 0
@@ -330,40 +343,38 @@ export function AdminHome({ role, onLogout }: { role: AdminRole; onLogout: () =>
               }
             />
             <Stat
-              label="कुल पंजीकरण"
-              value={visits.totalRegistrations || total}
-              hint="सभी समय"
-              icon={<Users className="size-5" aria-hidden="true" />}
-              trend={today > 0 ? { label: `आज ${today}`, tone: "success" } : { label: "आज 0", tone: "muted" }}
-            />
-            <Stat
               label="पंजीकरण दर"
               value={visits.conversionRate}
               suffix="%"
               hint="पंजीकरण / अद्वितीय आगंतुक"
-              icon={<CheckCircle2 className="size-5" aria-hidden="true" />}
+              tone="saffron"
+              icon={<Percent className="size-5" aria-hidden="true" />}
             />
           </div>
-          <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-3">
+          <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
             <Stat
               label="आज के पंजीकरण"
               value={today}
+              tone="saffron"
               icon={<CalendarDays className="size-5" aria-hidden="true" />}
             />
-            <Stat label="लंबित" value={pending} icon={<Clock className="size-5" aria-hidden="true" />} />
+            <Stat label="लंबित" value={pending} tone="info" icon={<Clock className="size-5" aria-hidden="true" />} />
             <Stat
               label="जाँच पूर्ण"
               value={screened}
+              tone="navy"
               icon={<Stethoscope className="size-5" aria-hidden="true" />}
             />
             <Stat
               label="ऑपरेशन हेतु चयनित"
               value={selectedCount}
+              tone="saffron"
               icon={<UserCheck className="size-5" aria-hidden="true" />}
             />
             <Stat
               label="ऑपरेशन पूर्ण"
               value={completed}
+              tone="success"
               icon={<CheckCircle2 className="size-5" aria-hidden="true" />}
             />
           </div>
@@ -382,33 +393,37 @@ export function AdminHome({ role, onLogout }: { role: AdminRole; onLogout: () =>
               कार्यप्रवाह: पंजीकृत → जाँच पूर्ण → ऑपरेशन हेतु चयनित → ऑपरेशन निर्धारित → ऑपरेशन पूर्ण →
               फॉलो-अप पूर्ण
             </p>
+            <div className="mt-4 rounded-lg bg-cream p-3">
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div>
+                  <Label className="mb-1">पंजीकरण संख्या</Label>
+                  <Input
+                    value={filters.registrationNumber}
+                    onChange={(e) => setFilter("registrationNumber", e.target.value)}
+                    placeholder="TSF-2026-00001"
+                  />
+                </div>
+                <div>
+                  <Label className="mb-1">नाम</Label>
+                  <Input
+                    value={filters.name}
+                    onChange={(e) => setFilter("name", e.target.value)}
+                    placeholder="नाम से खोजें"
+                  />
+                </div>
+                <div>
+                  <Label className="mb-1">मोबाइल</Label>
+                  <Input
+                    inputMode="numeric"
+                    maxLength={10}
+                    value={filters.mobile}
+                    onChange={(e) => setFilter("mobile", e.target.value.replace(/\D/g, "").slice(0, 10))}
+                    placeholder="मोबाइल से खोजें"
+                  />
+                </div>
+              </div>
+            </div>
             <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              <div>
-                <Label className="mb-1">पंजीकरण संख्या</Label>
-                <Input
-                  value={filters.registrationNumber}
-                  onChange={(e) => setFilter("registrationNumber", e.target.value)}
-                  placeholder="TSF-2026-00001"
-                />
-              </div>
-              <div>
-                <Label className="mb-1">नाम</Label>
-                <Input
-                  value={filters.name}
-                  onChange={(e) => setFilter("name", e.target.value)}
-                  placeholder="नाम से खोजें"
-                />
-              </div>
-              <div>
-                <Label className="mb-1">मोबाइल</Label>
-                <Input
-                  inputMode="numeric"
-                  maxLength={10}
-                  value={filters.mobile}
-                  onChange={(e) => setFilter("mobile", e.target.value.replace(/\D/g, "").slice(0, 10))}
-                  placeholder="मोबाइल से खोजें"
-                />
-              </div>
               <div>
                 <Label className="mb-1">ग्राम</Label>
                 <Input
@@ -556,6 +571,7 @@ export function AdminHome({ role, onLogout }: { role: AdminRole; onLogout: () =>
               label="अभी ऑनलाइन"
               value={visits.online}
               hint="पिछले 5 मिनट में सक्रिय"
+              tone="success"
               icon={<UserCheck className="size-5" aria-hidden="true" />}
               trend={
                 visits.online > 0
@@ -567,11 +583,13 @@ export function AdminHome({ role, onLogout }: { role: AdminRole; onLogout: () =>
               label="अद्वितीय आगंतुक"
               value={visits.uniqueVisitors}
               hint="अनाम ब्राउज़र/डिवाइस अनुमान"
+              tone="info"
               icon={<Users className="size-5" aria-hidden="true" />}
             />
             <Stat
               label="कुल पंजीकरण"
               value={visits.totalRegistrations || total}
+              tone="maroon"
               icon={<CalendarDays className="size-5" aria-hidden="true" />}
             />
           </div>
