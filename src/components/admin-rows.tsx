@@ -31,6 +31,14 @@ const TONE = {
   info: "bg-info/10 text-info",
 } as const;
 
+const ACCENT = {
+  maroon: "bg-maroon",
+  navy: "bg-navy",
+  saffron: "bg-saffron",
+  success: "bg-success",
+  info: "bg-info",
+} as const;
+
 export function Stat({
   label,
   value,
@@ -51,24 +59,25 @@ export function Stat({
   const trendClass =
     trend?.tone === "success" ? "text-success" : trend?.tone === "warn" ? "text-saffron" : "text-muted";
   return (
-    <div className="rounded-xl bg-paper p-4 shadow-[var(--shadow-card)]">
-      <div className="flex items-start justify-between gap-3">
-        <div className={`flex size-10 items-center justify-center rounded-md ${TONE[tone]}`}>
+    <article className="relative overflow-hidden rounded-xl bg-paper p-4 shadow-[var(--shadow-card)]">
+      <div className={`absolute inset-y-0 left-0 w-1 ${ACCENT[tone]}`} aria-hidden="true" />
+      <div className="flex items-start justify-between gap-3 pl-1">
+        <div className={`flex size-10 shrink-0 items-center justify-center rounded-md ${TONE[tone]}`}>
           {icon ?? <Users className="size-5" aria-hidden="true" />}
         </div>
         {trend ? (
-          <span className={`max-w-[9rem] text-right text-xs font-medium leading-snug ${trendClass}`}>
+          <span className={`max-w-32 text-right text-xs font-medium leading-snug ${trendClass}`}>
             {trend.label}
           </span>
         ) : null}
       </div>
-      <p className="mt-3 font-display text-3xl tabular-nums leading-none text-navy">
+      <p className="mt-3 pl-1 font-display text-3xl tabular-nums leading-none text-navy">
         {value}
         {suffix ?? ""}
       </p>
-      <p className="mt-2 text-sm font-medium text-navy">{label}</p>
-      {hint ? <p className="mt-1 text-xs leading-snug text-muted">{hint}</p> : null}
-    </div>
+      <p className="mt-2 pl-1 text-sm font-medium text-navy">{label}</p>
+      {hint ? <p className="mt-1 pl-1 text-xs leading-snug text-muted">{hint}</p> : null}
+    </article>
   );
 }
 
@@ -137,7 +146,12 @@ function ActionButton({
   children: ReactNode;
 } & ComponentProps<typeof Button>) {
   return (
-    <Button size="sm" className={compact ? "min-h-10 gap-1 px-2.5" : undefined} aria-label={label} {...props}>
+    <Button
+      size="sm"
+      className={compact ? "min-h-10 gap-1 px-2.5" : "min-h-11 gap-1.5 px-3"}
+      aria-label={label}
+      {...props}
+    >
       {children}
       <span className={compact ? "hidden xl:inline" : undefined}>{label}</span>
     </Button>
@@ -229,7 +243,7 @@ export function AdminRegistrationList({
 
   function actions(row: RegistrationRow, compact?: boolean) {
     return (
-      <div className="flex flex-wrap gap-1.5">
+      <div className={compact ? "flex flex-wrap gap-1.5" : "grid grid-cols-2 gap-2 sm:flex sm:flex-wrap"}>
         <ActionButton label="देखें" compact={compact} variant="secondary" onClick={() => onOpen(row)}>
           <Eye className="size-4" aria-hidden="true" />
         </ActionButton>
@@ -360,8 +374,10 @@ export function AdminRegistrationList({
                     <dd className="text-muted">{formatWhen(row.createdAt)}</dd>
                   </div>
                 </dl>
-                <div className="mt-3 grid gap-2">
+                <div className="mt-3 flex flex-wrap items-center gap-2">
                   <StatusBadge status={row.status} />
+                </div>
+                <div className="mt-2">
                   <StatusSelect
                     className="min-h-11"
                     value={row.status}
