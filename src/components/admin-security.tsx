@@ -136,7 +136,9 @@ export function AdminSecurityPanel({
   }
 
   return (
-    <Card id="super-admin">
+    <Card id="super-admin" className="overflow-hidden p-0 sm:p-0">
+      <div className="h-1 bg-maroon" aria-hidden="true" />
+      <div className="p-5 sm:p-6">
       <div className="flex items-start gap-3">
         <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-maroon text-paper">
           <Shield className="size-5" aria-hidden="true" />
@@ -164,7 +166,7 @@ export function AdminSecurityPanel({
         </p>
       ) : null}
 
-      <section id="sa-delete" className="mt-5 scroll-mt-24 border-t border-line pt-4">
+      <section id="sa-delete" className="mt-5 scroll-mt-24 rounded-lg bg-danger/5 p-3 ring-1 ring-danger/15">
         <h3 className="font-display text-base text-navy">Delete Registration</h3>
         <p className="mt-1 text-xs text-muted">
           सूची या प्रोफ़ाइल पर भी हटाएँ उपलब्ध है। पुष्टि के बाद ही रिकॉर्ड स्थायी रूप से हटता है।
@@ -280,6 +282,7 @@ export function AdminSecurityPanel({
           {busy === "logout" ? "समाप्त हो रहा है…" : "सभी एडमिन सत्र समाप्त करें"}
         </Button>
       </section>
+      </div>
     </Card>
   );
 }
