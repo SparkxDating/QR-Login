@@ -164,25 +164,10 @@ export function VisitAnalytics({
           <ul className="grid max-h-96 gap-2 overflow-y-auto pr-1">
             {compareRows.map((row) => (
               <li key={row.day} className="min-w-0 rounded-lg bg-cream px-3 py-2.5">
-                <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2 text-sm">
-                  <span className="font-medium text-navy">{formatVisitDay(row.day)}</span>
-                  <span className="tabular-nums text-muted">
-                    {row.visits} विज़िट · {row.registrations} पंजीकरण
-                  </span>
-                </div>
+                <p className="mb-2 text-sm font-medium text-navy">{formatVisitDay(row.day)}</p>
                 <div className="grid gap-1.5">
-                  <div className="h-3 overflow-hidden rounded-full bg-paper">
-                    <div
-                      className="h-full rounded-full bg-navy"
-                      style={{ width: barWidth(row.visits, maxDual) }}
-                    />
-                  </div>
-                  <div className="h-3 overflow-hidden rounded-full bg-paper">
-                    <div
-                      className="h-full rounded-full bg-saffron"
-                      style={{ width: barWidth(row.registrations, maxDual) }}
-                    />
-                  </div>
+                  <CompareBar label="विज़िट" value={row.visits} max={maxDual} tone="navy" />
+                  <CompareBar label="पंजीकरण" value={row.registrations} max={maxDual} tone="saffron" />
                 </div>
               </li>
             ))}
@@ -194,21 +179,21 @@ export function VisitAnalytics({
         <ChartCard title="विस्तृत आँकड़े" hint="Super Admin · दैनिक योग, बिना आगंतुक पहचान" accent="maroon">
           <div className="-mx-2 overflow-x-auto px-2 sm:mx-0 sm:px-0">
             <table className="w-full min-w-[28rem] text-left text-sm">
-              <thead className="text-muted">
-                <tr>
-                  <th className="pb-2 pr-3 font-medium">तिथि</th>
-                  <th className="pb-2 pr-3 font-medium">विज़िट</th>
-                  <th className="pb-2 pr-3 font-medium">अद्वितीय (अनुमान)</th>
-                  <th className="pb-2 font-medium">पंजीकरण</th>
+              <thead>
+                <tr className="bg-cream text-xs font-semibold tracking-wide text-muted">
+                  <th className="rounded-l-md px-3 py-2 font-semibold">तिथि</th>
+                  <th className="px-3 py-2 font-semibold">विज़िट</th>
+                  <th className="px-3 py-2 font-semibold">अद्वितीय (अनुमान)</th>
+                  <th className="rounded-r-md px-3 py-2 font-semibold">पंजीकरण</th>
                 </tr>
               </thead>
               <tbody>
                 {tableRows.map((row) => (
-                  <tr key={row.day} className="border-t border-line">
-                    <td className="py-2 pr-3 text-navy">{formatVisitDay(row.day)}</td>
-                    <td className="py-2 pr-3 tabular-nums">{row.visits}</td>
-                    <td className="py-2 pr-3 tabular-nums">{row.uniques}</td>
-                    <td className="py-2 tabular-nums">{row.registrations}</td>
+                  <tr key={row.day} className="border-t border-line hover:bg-cream/70">
+                    <td className="px-3 py-2 text-navy">{formatVisitDay(row.day)}</td>
+                    <td className="px-3 py-2 tabular-nums text-navy">{row.visits}</td>
+                    <td className="px-3 py-2 tabular-nums text-navy">{row.uniques}</td>
+                    <td className="px-3 py-2 tabular-nums text-navy">{row.registrations}</td>
                   </tr>
                 ))}
               </tbody>
@@ -235,6 +220,29 @@ function formatVisitDay(day: string): string {
 function barWidth(n: number, max: number): string {
   if (n <= 0) return "0%";
   return `${Math.max(4, Math.min(100, (n / max) * 100))}%`;
+}
+
+function CompareBar({
+  label,
+  value,
+  max,
+  tone,
+}: {
+  label: string;
+  value: number;
+  max: number;
+  tone: "navy" | "saffron";
+}) {
+  const fill = tone === "navy" ? "bg-navy" : "bg-saffron";
+  return (
+    <div className="flex items-center gap-2">
+      <span className="w-20 shrink-0 text-xs text-muted">{label}</span>
+      <div className="h-3 min-w-0 flex-1 overflow-hidden rounded-full bg-paper">
+        <div className={`h-full rounded-full ${fill}`} style={{ width: barWidth(value, max) }} />
+      </div>
+      <span className="w-10 shrink-0 text-right tabular-nums text-xs font-medium text-navy">{value}</span>
+    </div>
+  );
 }
 
 function VisitBarList({
